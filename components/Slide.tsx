@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { WebsiteSlide } from '../types';
 
@@ -51,15 +50,16 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
     }
   }, [slide.type]);
 
-  // Expose global playback function for internal studio designs (podcasts)
+  // Expose global playback and interaction functions for internal studio designs
   useEffect(() => {
-    if (isActive && slide.audioData) {
+    if (isActive) {
+      // Audio Playback logic
       const playAudio = async () => {
+        if (!slide.audioData) return;
         if (!audioContextRef.current) {
           audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
         }
 
-        // Resume context if it was suspended (common browser behavior)
         if (audioContextRef.current.state === 'suspended') {
           await audioContextRef.current.resume();
         }
@@ -91,13 +91,63 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
         }
       };
 
-      // Ensure the function is attached to window so it can be called from onclick in dangerouslySetInnerHTML
+      // Safety Fallbacks for AI-generated interaction functions
+      const trackEnrollment = (lessonId: string, action: string, targetUrl?: string) => {
+        console.log(`%c[Course Interaction] %c${action.toUpperCase()}%c: ${lessonId}`, "color: #6366f1; font-weight: bold", "color: #10b981; font-weight: bold", "color: #000");
+        
+        const performTracking = async () => {
+          if (slide.webhookUrl) {
+            try {
+              await fetch(slide.webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lessonId, action, slideId: slide.id, timestamp: new Date().toISOString() })
+              });
+            } catch (err) {
+              console.error("Webhook ping failed:", err);
+            }
+          }
+          
+          // If a target URL is provided and it's an enrollment action, navigate
+          if (targetUrl && (action.toLowerCase().includes('enroll') || action.toLowerCase().includes('start'))) {
+            window.open(targetUrl, '_blank');
+          }
+        };
+
+        performTracking();
+      };
+
+      // Chatbot interaction fallbacks
+      const sendQuickReply = (text: string) => {
+        console.log(`%c[Chatbot] %cQuick Reply%c: ${text}`, "color: #10b981; font-weight: bold", "color: #f59e0b; font-weight: bold", "color: #000");
+        if (slide.webhookUrl) {
+          fetch(slide.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'quick_reply', message: text, slideId: slide.id })
+          }).catch(console.error);
+        }
+      };
+
+      const sendMessage = (text: string) => {
+        console.log(`%c[Chatbot] %cMessage Sent%c: ${text}`, "color: #10b981; font-weight: bold", "color: #3b82f6; font-weight: bold", "color: #000");
+        if (slide.webhookUrl) {
+          fetch(slide.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'chat_message', message: text, slideId: slide.id })
+          }).catch(console.error);
+        }
+      };
+
+      // Attach to window
       (window as any).playMagazineAudio = playAudio;
+      (window as any).trackEnrollment = trackEnrollment;
+      (window as any).sendQuickReply = sendQuickReply;
+      (window as any).sendMessage = sendMessage;
     }
 
     return () => {
-      // Don't stop audio immediately on metadata change if we want it to persist,
-      // but usually for a slide show, we clean up when the component unmounts or becomes inactive.
       if (!isActive) {
         if (sourceNodeRef.current) {
           try {
@@ -106,29 +156,28 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
         }
         setIsPlayingPodcast(false);
         delete (window as any).playMagazineAudio;
+        delete (window as any).trackEnrollment;
+        delete (window as any).sendQuickReply;
+        delete (window as any).sendMessage;
       }
     };
-  }, [isActive, slide.audioData, isPlayingPodcast]);
+  }, [isActive, slide.audioData, isPlayingPodcast, slide.webhookUrl, slide.id]);
 
   return (
-    <div className="relative w-screen h-screen flex-shrink-0 snap-start bg-zinc-900 overflow-hidden">
+    <div className="relative w-screen h-screen flex-shrink-0 snap-start bg-[#f8f8f8] overflow-hidden slide-enter">
       {/* Loading Placeholder */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black z-20">
+        <div className="absolute inset-0 flex items-center justify-center bg-[#050505] z-20">
           <div className="flex flex-col items-center">
-            <div className="w-16 h-1 bg-zinc-800 mb-4 overflow-hidden">
-              <div className="h-full bg-white animate-[loading_1.5s_ease-in-out_infinite]"></div>
+            <div className="w-24 h-[1px] bg-white/10 mb-6 overflow-hidden">
+              <div className="h-full bg-white animate-[loading_2s_cubic-bezier(0.16,1,0.3,1)_infinite]"></div>
             </div>
-            <p className="text-[10px] tracking-[0.4em] uppercase text-zinc-500">Curating {slide.title}</p>
+            <p className="text-[9px] tracking-[0.6em] uppercase text-white/30 font-black">Decrypting {slide.title}</p>
           </div>
         </div>
       )}
 
-      {/* 
-          Iframe / Internal Content Wrapper 
-          We make the inner container slightly wider than the viewport to hide the scrollbar track 
-          while preserving the ability to scroll through the content.
-      */}
+      {/* Iframe / Internal Content Wrapper */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pt-[64px]">
         {isActive && (
           <div className="w-full h-full overflow-y-auto no-scrollbar">
@@ -155,48 +204,62 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
 
       {/* Magazine HUD / Overlay */}
       {showHud && (
-        <div className="absolute bottom-0 left-0 w-full p-8 md:p-12 z-30 pointer-events-none">
-          <div className="max-w-xl bg-black/40 backdrop-blur-xl p-8 border-l-[6px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.5)] transform translate-y-0 opacity-100 transition-all duration-1000 ease-out pointer-events-auto group relative">
-            {/* Close Button */}
+        <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 z-30 pointer-events-none">
+          <div className="max-w-2xl bg-white/95 backdrop-blur-2xl p-8 md:p-12 border-l-[8px] border-black shadow-[0_30px_100px_rgba(0,0,0,0.15)] transform translate-y-0 opacity-100 transition-all duration-700 ease-out pointer-events-auto relative animate-in fade-in slide-in-from-bottom-12">
+            
             <button 
               onClick={onHideHud}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all rounded-full"
+              className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center text-black/20 hover:text-black hover:bg-black/5 transition-all rounded-full"
               title="Hide all descriptions"
             >
-              <span className="text-xl font-light leading-none">×</span>
+              <span className="text-2xl font-light">×</span>
             </button>
 
-            <div className="flex items-center gap-3 mb-3 pr-8">
-               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: slide.accentColor || '#fff' }}></div>
-               <span className="text-[10px] font-black tracking-[0.3em] text-white/50 uppercase">
-                {slide.category} {slide.type === 'external' && slide.url ? `// ${new URL(slide.url).hostname}` : '// Internal Design'}
-              </span>
+            <div className="flex items-center justify-between mb-6">
+               <div className="flex items-center gap-4">
+                 <div className="w-3 h-[2px]" style={{ backgroundColor: slide.accentColor || '#000' }}></div>
+                 <span className="text-[10px] font-black tracking-[0.4em] text-black/40 uppercase">
+                  {slide.category} {slide.type === 'external' && slide.url ? `// ARCHIVE` : `// STUDIO EDITORIAL`}
+                </span>
+               </div>
+               {slide.price && (
+                 <span className="text-[10px] font-mono text-black/60 bg-black/5 px-3 py-1 rounded tracking-widest">{slide.price}</span>
+               )}
             </div>
-            <h3 className="text-3xl md:text-4xl font-serif font-black text-white mb-4 leading-none tracking-tighter">
+
+            <h3 className="text-4xl md:text-5xl font-serif font-black text-black mb-6 leading-[0.9] tracking-tighter italic">
               {slide.title}
             </h3>
-            <p className="text-sm text-zinc-300 leading-relaxed font-light italic mb-6">
+
+            {slide.subtitle && (
+               <p className="text-sm text-black/80 font-bold uppercase tracking-[0.2em] mb-4 leading-tight">
+                 {slide.subtitle}
+               </p>
+            )}
+
+            <p className="text-base md:text-lg text-black/70 leading-relaxed font-light italic mb-10 max-w-xl">
               {slide.description}
             </p>
-            <div className="flex items-center gap-6">
+
+            <div className="flex items-center gap-10">
               {slide.type === 'external' ? (
                 <a 
                   href={slide.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="group/link flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] font-black text-white"
+                  className="group/link flex items-center gap-4 text-[10px] uppercase tracking-[0.4em] font-black text-black"
                 >
-                  <span className="border-b border-white/20 group-hover/link:border-white transition-all">Launch Original</span>
-                  <span className="transform group-hover/link:translate-x-1 transition-transform">→</span>
+                  <span className="border-b border-black/20 group-hover/link:border-black transition-all">Launch Observation</span>
+                  <span className="transform group-hover/link:translate-x-2 transition-transform">→</span>
                 </a>
               ) : (
-                <div className="flex items-center gap-4">
-                  <div className="text-[8px] uppercase tracking-[0.4em] font-black text-white/30">Editorial Studio Design</div>
+                <div className="flex items-center gap-6">
+                  <div className="text-[9px] uppercase tracking-[0.5em] font-black text-black/20">Ref. Ed-Digital-01</div>
                   {slide.audioData && isPlayingPodcast && (
-                    <div className="flex gap-1 items-end h-3">
-                       <div className="w-1 bg-white/40 animate-pulse h-full"></div>
-                       <div className="w-1 bg-white/40 animate-pulse h-2/3 delay-75"></div>
-                       <div className="w-1 bg-white/40 animate-pulse h-1/2 delay-150"></div>
+                    <div className="flex gap-1.5 items-end h-4">
+                       <div className="w-1 bg-black/40 animate-pulse h-full"></div>
+                       <div className="w-1 bg-black/40 animate-pulse h-3/4 delay-75"></div>
+                       <div className="w-1 bg-black/40 animate-pulse h-1/2 delay-150"></div>
                     </div>
                   )}
                 </div>

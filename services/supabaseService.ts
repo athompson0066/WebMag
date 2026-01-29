@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { WebsiteSlide } from '../types';
 
@@ -32,7 +31,9 @@ export async function saveSlideToSupabase(slide: WebsiteSlide) {
       description: slide.description,
       category: slide.category,
       accentColor: slide.accentColor,
-      listicleData: slide.listicleData
+      listicleData: slide.listicleData,
+      webhookUrl: slide.webhookUrl,
+      googleSheetSubmissionUrl: slide.googleSheetSubmissionUrl
     });
 
   if (error) console.error('Error saving slide:', error);
@@ -59,7 +60,9 @@ export async function saveMultipleSlidesToSupabase(slides: WebsiteSlide[]) {
       description: slide.description,
       category: slide.category,
       accentColor: slide.accentColor,
-      listicleData: slide.listicleData
+      listicleData: slide.listicleData,
+      webhookUrl: slide.webhookUrl,
+      googleSheetSubmissionUrl: slide.googleSheetSubmissionUrl
     })));
 
   if (error) console.error('Error saving multiple slides:', error);
