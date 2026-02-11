@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { WebsiteSlide } from '../types';
 
@@ -39,16 +40,14 @@ async function decodeAudioData(
 }
 
 const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) => {
-  const [isLoading, setIsLoading] = useState(slide.type === 'external');
+  const [isLoading, setIsLoading] = useState(true);
   const [isPlayingPodcast, setIsPlayingPodcast] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
 
   useEffect(() => {
-    if (slide.type === 'internal') {
-      setIsLoading(false);
-    }
-  }, [slide.type]);
+    setIsLoading(true);
+  }, [slide.id, slide.content, slide.url]);
 
   // Expose global playback and interaction functions for internal studio designs
   useEffect(() => {
@@ -163,11 +162,70 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
     };
   }, [isActive, slide.audioData, isPlayingPodcast, slide.webhookUrl, slide.id]);
 
+  const wrapContentInFrame = (content: string) => {
+    // If it's already a full HTML doc, just return it
+    if (content.toLowerCase().includes('<!doctype') || content.toLowerCase().includes('<html')) {
+        return content;
+    }
+    // Otherwise, wrap it to ensure Tailwind and isolation works
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@100..900&display=swap" rel="stylesheet">
+          <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+          <script>
+            tailwind.config = {
+              theme: {
+                extend: {
+                  fontFamily: {
+                    serif: ['"Playfair Display"', 'serif'],
+                    sans: ['Inter', 'system-ui', 'sans-serif'],
+                  },
+                },
+              },
+            }
+          </script>
+          <style>
+            body { margin: 0; padding: 0; background: transparent; overflow-x: hidden; font-family: 'Inter', sans-serif; }
+            *::-webkit-scrollbar { display: none; }
+            * { -ms-overflow-style: none; scrollbar-width: none; }
+            .drop-cap::first-letter {
+              float: left;
+              font-size: 5rem;
+              line-height: 1;
+              padding-right: 0.75rem;
+              font-family: 'Playfair Display', serif;
+              color: #136dec;
+              font-weight: 800;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="w-full min-h-screen">
+            ${content}
+          </div>
+          <script>
+             // Parent communication bridges
+             window.trackEnrollment = (...args) => window.parent.trackEnrollment(...args);
+             window.sendQuickReply = (...args) => window.parent.sendQuickReply(...args);
+             window.sendMessage = (...args) => window.parent.sendMessage(...args);
+             window.playMagazineAudio = (...args) => window.parent.playMagazineAudio(...args);
+          </script>
+        </body>
+      </html>
+    `;
+  };
+
   return (
     <div className="relative w-screen h-screen flex-shrink-0 snap-start bg-[#f8f8f8] overflow-hidden slide-enter">
       {/* Loading Placeholder */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#050505] z-20">
+        <div className="absolute inset-0 flex items-center justify-center bg-[#050505] z-20 transition-opacity duration-1000">
           <div className="flex flex-col items-center">
             <div className="w-24 h-[1px] bg-white/10 mb-6 overflow-hidden">
               <div className="h-full bg-white animate-[loading_2s_cubic-bezier(0.16,1,0.3,1)_infinite]"></div>
@@ -177,27 +235,19 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
         </div>
       )}
 
-      {/* Iframe / Internal Content Wrapper */}
+      {/* Frame Wrapper */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pt-[64px]">
         {isActive && (
-          <div className="w-full h-full overflow-y-auto no-scrollbar">
-            {slide.type === 'internal' ? (
-              <div 
-                className={`w-full min-h-full transition-opacity duration-1000 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-                dangerouslySetInnerHTML={{ __html: slide.content || '' }} 
-              />
-            ) : (
-              <div className="w-full h-full overflow-hidden">
-                <iframe
-                  src={slide.url}
-                  title={slide.title}
-                  style={{ width: 'calc(100% + 20px)', height: '100%', border: 'none' }}
-                  className={`transition-opacity duration-1000 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-                  onLoad={() => setIsLoading(false)}
-                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                />
-              </div>
-            )}
+          <div className="w-full h-full overflow-hidden">
+            <iframe
+              srcDoc={slide.type === 'internal' ? wrapContentInFrame(slide.content || '') : undefined}
+              src={slide.type === 'external' ? slide.url : undefined}
+              title={slide.title}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              className={`transition-opacity duration-1000 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+              onLoad={() => setIsLoading(false)}
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            />
           </div>
         )}
       </div>
@@ -247,7 +297,7 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
                   href={slide.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="group/link flex items-center gap-4 text-[10px] uppercase tracking-[0.4em] font-black text-black"
+                  className="group/link flex items-center gap-4 text-[10px] uppercase tracking-[0.4em] font-black text-black pointer-events-auto"
                 >
                   <span className="border-b border-black/20 group-hover/link:border-black transition-all">Launch Observation</span>
                   <span className="transform group-hover/link:translate-x-2 transition-transform">→</span>

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { WebsiteSlide, CoverConfig, ListicleItem, ListicleData } from '../types';
 import { 
@@ -14,7 +15,8 @@ import {
   researchAndDesignMiniAppCrew,
   researchAndDesignLeadGenCrew,
   researchAndDesignVideoStoryCrew,
-  generateListicleHtml
+  generateListicleHtml,
+  orchestrateMagazineIssue
 } from '../services/geminiService';
 
 interface AdminPanelProps {
@@ -26,14 +28,15 @@ interface AdminPanelProps {
   onUpdateCover: (config: CoverConfig) => void;
   onCurate: (topic: string, count: number, sourceUrl?: string, instructions?: string) => Promise<void>;
   onReorderSlides: (newSlides: WebsiteSlide[]) => void;
+  onFullIssueGenerated: (cover: CoverConfig, slides: WebsiteSlide[]) => void;
   onClose: () => void;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ 
   slides, coverConfig, onAddSlide, onUpdateSlide, onRemoveSlide, 
-  onUpdateCover, onCurate, onReorderSlides, onClose 
+  onUpdateCover, onCurate, onReorderSlides, onFullIssueGenerated, onClose 
 }) => {
-  const [activeTab, setActiveTab] = useState<'pages' | 'covers'>('pages');
+  const [activeTab, setActiveTab] = useState<'pages' | 'covers' | 'orchestrate'>('orchestrate');
   const [studioMode, setStudioMode] = useState<'manual' | 'crew' | 'listicle_editor'>('crew');
   const [crewMode, setCrewMode] = useState<'layout' | 'research' | 'podcast' | 'videoGallery' | 'videoStory' | 'productGallery' | 'chatbot' | 'course' | 'blog' | 'ad' | 'listicle' | 'miniApp' | 'leadGen'>('layout');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -59,9 +62,76 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [googleSheetSubmissionUrl, setGoogleSheetSubmissionUrl] = useState('');
 
   const [isDesigning, setIsDesigning] = useState(false);
+  const [designProgress, setDesignProgress] = useState('');
   const [formState, setFormState] = useState<Partial<WebsiteSlide>>({
     url: '', content: '', type: 'external', title: '', subtitle: '', description: '', category: 'General', accentColor: '#ffffff', webhookUrl: '', googleSheetSubmissionUrl: '', price: ''
   });
+
+  const handleInstantOrchestrate = async () => {
+    if (!genTopic) return;
+    setIsDesigning(true);
+    try {
+      const result = await orchestrateMagazineIssue(genTopic, (msg) => setDesignProgress(msg));
+      onFullIssueGenerated(result.cover, result.slides);
+      onClose();
+    } catch (err) {
+      console.error(err);
+      setDesignProgress("Failed to architect issue. Check console.");
+    } finally {
+      setIsDesigning(false);
+    }
+  };
+
+  const wrapContentInFrame = (content: string) => {
+    if (!content) return '';
+    if (content.toLowerCase().includes('<!doctype') || content.toLowerCase().includes('<html')) {
+        return content;
+    }
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@100..900&display=swap" rel="stylesheet">
+          <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+          <script>
+            tailwind.config = {
+              theme: {
+                extend: {
+                  fontFamily: {
+                    serif: ['"Playfair Display"', 'serif'],
+                    sans: ['Inter', 'system-ui', 'sans-serif'],
+                  },
+                },
+              },
+            }
+          </script>
+          <style>
+            body { margin: 0; padding: 0; background: #fff; overflow-x: hidden; font-family: 'Inter', sans-serif; }
+            *::-webkit-scrollbar { display: none; }
+            * { -ms-overflow-style: none; scrollbar-width: none; }
+            .drop-cap::first-letter {
+              float: left;
+              font-size: 5rem;
+              line-height: 1;
+              padding-right: 0.75rem;
+              font-family: 'Playfair Display', serif;
+              color: #136dec;
+              font-weight: 800;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="w-full min-h-screen">
+            ${content}
+          </div>
+        </body>
+      </html>
+    `;
+  };
 
   const addListicleItem = () => {
     const newItem: ListicleItem = {
@@ -195,6 +265,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleDesignCrewGeneration = async () => {
     setIsDesigning(true);
+    setDesignProgress("Briefing Design Crew...");
     const validScrapeSources = scrapingUrls.filter(u => u.trim().length > 0);
     const validSheetSources = sheetUrls.filter(u => u.trim().length > 0);
     const validDriveSources = driveUrls.filter(u => u.trim().length > 0);
@@ -260,47 +331,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       console.error(err);
     } finally {
       setIsDesigning(false);
+      setDesignProgress("");
     }
   };
 
   const openStandaloneCourse = () => {
     if (!formState.content) return;
-    const blob = new Blob([`
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${formState.title || 'Course View'}</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <style>
-          body { margin: 0; background: #fff; color: #000; font-family: sans-serif; overflow-x: hidden; }
-          *::-webkit-scrollbar { display: none; }
-          * { -ms-overflow-style: none; scrollbar-width: none; }
-        </style>
-      </head>
-      <body>
-        ${formState.content}
-        <script>
-          window.trackEnrollment = function(id, action, event) {
-             console.log("Standalone Tracking Triggered:", id, action);
-             const btn = event?.currentTarget;
-             if (btn && action === 'enroll') {
-                btn.innerHTML = '✓ ENROLLED SUCCESSFULLY';
-                btn.classList.add('bg-emerald-600', 'text-white');
-                btn.classList.remove('bg-indigo-600', 'bg-black');
-             }
-          };
-          window.sendQuickReply = function(text) {
-            console.log("Standalone Quick Reply:", text);
-          };
-          window.sendMessage = function(text) {
-            console.log("Standalone Message Sent:", text);
-          };
-        </script>
-      </body>
-      </html>
-    `], { type: 'text/html' });
+    const blob = new Blob([wrapContentInFrame(formState.content || '')], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
   };
@@ -325,21 +362,25 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               Exit Full View
             </button>
           </div>
-          <div className="w-full h-full bg-white overflow-y-auto no-scrollbar">
-             <div className="w-full min-h-full" dangerouslySetInnerHTML={{ __html: formState.content || '' }} />
-             <script dangerouslySetInnerHTML={{ __html: `
-                window.trackEnrollment = function(id, action) {
-                  console.log("Preview Tracking:", id, action);
-                  if (action === 'enroll') alert("Enrollment Successful (Simulation)");
-                };
-                window.sendQuickReply = function(text) {
-                  console.log("Preview Quick Reply:", text);
-                };
-                window.sendMessage = function(text) {
-                  console.log("Preview Message Sent:", text);
-                };
-             ` }} />
+          <div className="w-full h-full bg-white overflow-hidden">
+             <iframe 
+                srcDoc={wrapContentInFrame(formState.content || '')} 
+                className="w-full h-full border-none"
+                title="Full Preview"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+             />
           </div>
+        </div>
+      )}
+
+      {/* Progress Loading Overlay */}
+      {isDesigning && (
+        <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-12 text-center">
+           <div className="w-64 h-1 bg-white/10 rounded-full overflow-hidden mb-8">
+              <div className="h-full bg-indigo-500 animate-[loading_2s_infinite]"></div>
+           </div>
+           <h3 className="text-2xl font-serif italic mb-4">Architecting Digital Publication...</h3>
+           <p className="text-[10px] uppercase tracking-[0.6em] text-white/40 font-black animate-pulse">{designProgress}</p>
         </div>
       )}
 
@@ -347,6 +388,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         <div className="flex items-center gap-12">
           <h2 className="text-2xl font-serif font-black italic uppercase tracking-tight">Magazine Studio</h2>
           <div className="flex gap-4">
+            <button onClick={() => setActiveTab('orchestrate')} className={`text-[10px] uppercase tracking-[0.3em] font-bold px-4 py-2 ${activeTab === 'orchestrate' ? 'bg-white text-black' : 'text-zinc-500'}`}>Instant Issue</button>
             <button onClick={() => setActiveTab('pages')} className={`text-[10px] uppercase tracking-[0.3em] font-bold px-4 py-2 ${activeTab === 'pages' ? 'bg-white text-black' : 'text-zinc-500'}`}>Pages</button>
             <button onClick={() => setActiveTab('covers')} className={`text-[10px] uppercase tracking-[0.3em] font-bold px-4 py-2 ${activeTab === 'covers' ? 'bg-white text-black' : 'text-zinc-500'}`}>Cover</button>
           </div>
@@ -355,7 +397,53 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {activeTab === 'pages' ? (
+        {activeTab === 'orchestrate' ? (
+          <div className="w-full flex items-center justify-center p-12 bg-[#050505]">
+            <div className="max-w-2xl w-full space-y-12">
+               <header className="text-center space-y-6">
+                  <span className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-500">Autonomous Creative Orchestrator</span>
+                  <h3 className="text-6xl font-serif italic font-black text-white tracking-tighter">Instant Issue Architect.</h3>
+                  <p className="text-zinc-500 font-light italic text-lg">One topic. One click. A complete multi-page immersive digital experience generated by the Architect Crew.</p>
+               </header>
+
+               <div className="bg-white/5 border border-white/10 p-10 rounded-sm space-y-8 shadow-2xl">
+                  <div className="space-y-4">
+                    <label className="text-[9px] uppercase font-black tracking-widest text-zinc-400">Target Narrative / Market Topic</label>
+                    <input 
+                      value={genTopic} 
+                      onChange={e => setGenTopic(e.target.value)} 
+                      placeholder="e.g. Future of Lunar Colonization, 2025 Brutalist Revival..." 
+                      className="w-full bg-black border border-white/10 p-5 text-xl font-serif italic outline-none focus:border-indigo-500 transition-all" 
+                    />
+                  </div>
+
+                  <button 
+                    onClick={handleInstantOrchestrate}
+                    disabled={!genTopic || isDesigning}
+                    className="w-full group relative bg-white text-black py-6 text-[11px] font-black uppercase tracking-[0.4em] shadow-2xl transition-all hover:bg-zinc-200 disabled:opacity-30 overflow-hidden"
+                  >
+                    <span className="relative z-10">Architect Publication Issue</span>
+                    <div className="absolute inset-0 bg-indigo-100/50 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-700"></div>
+                  </button>
+               </div>
+               
+               <div className="grid grid-cols-3 gap-8 pt-8">
+                  <div className="space-y-3">
+                     <span className="text-[8px] font-black uppercase text-zinc-600">01. Research</span>
+                     <p className="text-[10px] text-zinc-500 leading-relaxed italic">The Archive Agent deep-searches the web for latest trends and facts.</p>
+                  </div>
+                  <div className="space-y-3">
+                     <span className="text-[8px] font-black uppercase text-zinc-600">02. Design</span>
+                     <p className="text-[10px] text-zinc-500 leading-relaxed italic">The Editorial Crew builds layouts for Blog, Gallery, and Video Story.</p>
+                  </div>
+                  <div className="space-y-3">
+                     <span className="text-[8px] font-black uppercase text-zinc-600">03. Synthesis</span>
+                     <p className="text-[10px] text-zinc-500 leading-relaxed italic">The Orchestrator ties everything into a cohesive fullscreen slide show.</p>
+                  </div>
+               </div>
+            </div>
+          </div>
+        ) : activeTab === 'pages' ? (
           <>
             <div className="w-1/3 p-8 border-r border-white/10 overflow-y-auto admin-scroll space-y-12">
               <section className="space-y-6">
@@ -392,7 +480,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                               </button>
                             ))}
                           </div>
-                          <button onClick={() => scrollMenu('right')} className="absolute right-0 top-0 bottom-0 z-20 px-2 bg-gradient-to-l from-black via-black/50 to-transparent hover:from-white/20 transition-all flex items-center justify-center opacity-0 group-hover/menu:opacity-100">
+                          <button onClick={() => scrollMenu('right')} className="absolute right-0 top-0 bottom-0 z-20 px-2 bg-gradient-l from-black via-black/50 to-transparent hover:from-white/20 transition-all flex items-center justify-center opacity-0 group-hover/menu:opacity-100">
                             <span className="text-white text-xs font-black">›</span>
                           </button>
                         </div>
@@ -463,7 +551,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           <label className="text-[8px] uppercase font-bold text-indigo-400 tracking-widest block">Gallery Hero Visual</label>
                           <div className="flex gap-4 items-start">
                             <div className="w-20 aspect-video bg-zinc-900 overflow-hidden border border-white/10 shrink-0">
-                               {formState.listicleData?.sidebarImage ? <img src={formState.listicleData.sidebarImage} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-700 italic">No Img</div>}
+                               {formState.listicleData?.sidebarImage ? <img src={formState.listicleData.sidebarImage} className="w-full h-full object-cover" alt="Sidebar" /> : <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-700 italic">No Img</div>}
                             </div>
                             <input value={formState.listicleData?.sidebarImage || ''} onChange={e => setFormState({ ...formState, listicleData: { ...formState.listicleData!, sidebarImage: e.target.value } })} placeholder="Hero Image URL" className="flex-1 bg-black border border-white/10 p-3 text-xs outline-none focus:border-white transition-all" />
                           </div>
@@ -558,7 +646,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               </section>
             </div>
 
-            <div className="flex-1 bg-zinc-100 flex flex-col p-8 overflow-y-auto no-scrollbar relative">
+            <div className="flex-1 bg-zinc-100 flex flex-col p-8 overflow-hidden relative">
                <div className="flex justify-between items-center mb-6">
                  <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400 italic">Curatorial Work-in-Progress</h3>
                  {formState.content && (
@@ -566,7 +654,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                  )}
                </div>
                <div className="w-full h-full border border-black/5 rounded-lg overflow-hidden bg-white shadow-2xl relative">
-                  <div className="w-full h-full admin-scroll overflow-y-auto" dangerouslySetInnerHTML={{ __html: formState.content || '<div class="flex items-center justify-center h-full text-zinc-300 uppercase font-black tracking-widest text-[12px] italic">Syncing Preview...</div>' }} />
+                  <iframe 
+                    className="w-full h-full border-none"
+                    srcDoc={wrapContentInFrame(formState.content || '<div class="flex items-center justify-center h-full text-zinc-300 uppercase font-black tracking-widest text-[12px] italic">Syncing Preview...</div>')}
+                    title="Design Preview"
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                  />
                </div>
             </div>
           </>
@@ -579,6 +672,29 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   <label className="text-[10px] uppercase tracking-[0.4em] font-black text-zinc-600 mb-6 block">Publication Title</label>
                   <input value={coverConfig.title} onChange={e => onUpdateCover({...coverConfig, title: e.target.value})} className="w-full bg-transparent border-b border-white/10 p-4 text-5xl font-serif font-black italic outline-none focus:border-white transition-all text-white placeholder-zinc-800" placeholder="Brand Name" />
                 </section>
+                <section>
+                  <label className="text-[10px] uppercase tracking-[0.4em] font-black text-zinc-600 mb-6 block">Subtitle / Meta</label>
+                  <textarea value={coverConfig.subtitle} onChange={e => onUpdateCover({...coverConfig, subtitle: e.target.value})} className="w-full bg-transparent border-b border-white/10 p-4 text-xl italic font-light text-zinc-400 outline-none focus:border-white transition-all" rows={3} />
+                </section>
+              </div>
+              <div className="space-y-8">
+                 <div className="p-10 border border-white/10 rounded-sm bg-white/5 space-y-6">
+                    <h4 className="text-[10px] uppercase font-black text-zinc-400 tracking-widest">Global Accent</h4>
+                    <div className="flex items-center gap-6">
+                       <input type="color" value={coverConfig.accentColor} onChange={e => onUpdateCover({...coverConfig, accentColor: e.target.value})} className="w-16 h-16 bg-transparent border-none cursor-pointer" />
+                       <input value={coverConfig.accentColor} onChange={e => onUpdateCover({...coverConfig, accentColor: e.target.value})} className="bg-black border border-white/10 p-4 text-xs font-mono uppercase text-white outline-none" />
+                    </div>
+                 </div>
+                 <div className="p-10 border border-white/10 rounded-sm bg-white/5 space-y-6">
+                    <h4 className="text-[10px] uppercase font-black text-zinc-400 tracking-widest">Cover Layout Strategy</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                       {['minimal', 'brutalist', 'classic', 'gradient', 'grid', 'hero'].map(l => (
+                         <button key={l} onClick={() => onUpdateCover({...coverConfig, layoutId: l as any})} className={`p-4 border text-[9px] uppercase font-black tracking-widest transition-all ${coverConfig.layoutId === l ? 'bg-white text-black border-white' : 'border-white/10 text-zinc-500 hover:border-white/40'}`}>
+                           {l}
+                         </button>
+                       ))}
+                    </div>
+                 </div>
               </div>
             </div>
           </div>

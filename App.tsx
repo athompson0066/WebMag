@@ -6,7 +6,9 @@ import {
   fetchSlidesFromSupabase, 
   saveSlideToSupabase, 
   removeSlideFromSupabase, 
-  saveMultipleSlidesToSupabase 
+  saveMultipleSlidesToSupabase,
+  fetchCoverConfigFromSupabase,
+  saveCoverConfigToSupabase
 } from './services/supabaseService';
 import CoverPage from './components/CoverPage';
 import Slide from './components/Slide';
@@ -39,42 +41,6 @@ const INITIAL_SLIDES: WebsiteSlide[] = [
     description: 'The pulse of the tech industry. Where builders, thinkers, and disruptors share the future of software and society.',
     category: 'Technology',
     accentColor: '#FF6600'
-  },
-  {
-    id: '3',
-    type: 'internal',
-    title: 'Design as Infrastructure',
-    description: 'A masterclass in modern web aesthetics and functional elegance. How design shapes the global financial operating system.',
-    category: 'Design',
-    accentColor: '#635BFF',
-    content: `
-      <div class="min-h-full bg-zinc-950 text-white px-8 md:px-24 py-24 font-serif">
-        <div class="max-w-2xl">
-          <h1 class="text-8xl font-black italic tracking-tighter mb-10">Editorial <br/> Structure.</h1>
-          <p class="text-2xl text-zinc-400 mb-12 leading-relaxed">This page was designed directly in the Magazine Studio. No iframes, just pure code.</p>
-          <div class="h-1 w-24 bg-indigo-500 mb-12"></div>
-          <div class="grid grid-cols-2 gap-8 text-sm text-zinc-500 uppercase tracking-widest font-black">
-            <div>
-              <p class="mb-4 text-white">Direct Interaction</p>
-              <p>Fully responsive elements using Tailwind utility classes.</p>
-            </div>
-            <div>
-              <p class="mb-4 text-white">Integrated Layout</p>
-              <p>Seamless transitions between curated sites and original content.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    `
-  },
-  {
-    id: '4',
-    type: 'external',
-    url: 'https://css-tricks.com',
-    title: 'The Art of the Web',
-    description: 'Crafting pixel-perfect experiences. An essential guide for those who treat the browser as their canvas.',
-    category: 'Development',
-    accentColor: '#FF7F50'
   }
 ];
 
@@ -101,9 +67,15 @@ const App: React.FC = () => {
 
   useEffect(() => {
     async function init() {
+      // Load Slides
       const supabaseSlides = await fetchSlidesFromSupabase();
       if (supabaseSlides && supabaseSlides.length > 0) {
         setSlides(supabaseSlides);
+      }
+      // Load Cover
+      const supabaseCover = await fetchCoverConfigFromSupabase();
+      if (supabaseCover) {
+        setCoverConfig(supabaseCover);
       }
     }
     init();
@@ -186,6 +158,15 @@ const App: React.FC = () => {
     }
   };
 
+  const handleFullIssueGenerated = async (cover: CoverConfig, newSlides: WebsiteSlide[]) => {
+    setCoverConfig(cover);
+    setSlides(newSlides);
+    setCurrentIndex(0);
+    setAppState(AppState.COVER);
+    await saveCoverConfigToSupabase(cover);
+    await saveMultipleSlidesToSupabase(newSlides);
+  };
+
   const handleReorderSlides = async (newSlides: WebsiteSlide[]) => {
     setSlides(newSlides);
     await saveMultipleSlidesToSupabase(newSlides);
@@ -207,6 +188,11 @@ const App: React.FC = () => {
     const updated = slides.filter(s => s.id !== id);
     setSlides(updated);
     await removeSlideFromSupabase(id);
+  };
+
+  const handleUpdateCover = async (config: CoverConfig) => {
+    setCoverConfig(config);
+    await saveCoverConfigToSupabase(config);
   };
 
   const isAtEnd = currentIndex === slides.length;
@@ -332,9 +318,10 @@ const App: React.FC = () => {
           onAddSlide={addManualSlide} 
           onUpdateSlide={updateManualSlide}
           onRemoveSlide={removeSlide}
-          onUpdateCover={setCoverConfig}
+          onUpdateCover={handleUpdateCover}
           onCurate={onCurate}
           onReorderSlides={handleReorderSlides}
+          onFullIssueGenerated={handleFullIssueGenerated}
           onClose={() => setAppState(AppState.READING)}
         />
       )}

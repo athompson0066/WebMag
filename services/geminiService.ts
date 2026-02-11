@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
-import { WebsiteSlide, ListicleData } from "../types";
+import { WebsiteSlide, ListicleData, CoverConfig } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -150,6 +151,56 @@ async function generateWithScrapingCrew(
 }
 
 /**
+ * Orchestrates a full magazine issue generation
+ */
+export async function orchestrateMagazineIssue(topic: string, onProgress: (msg: string) => void): Promise<{ cover: CoverConfig, slides: WebsiteSlide[] }> {
+  onProgress("Architecting Publication Cover...");
+  
+  const coverResponse = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: `Design a premium magazine cover config for the topic: "${topic}".`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          layoutId: { type: Type.STRING, enum: ['minimal', 'brutalist', 'classic', 'gradient', 'grid', 'hero'] },
+          title: { type: Type.STRING },
+          subtitle: { type: Type.STRING },
+          accentColor: { type: Type.STRING },
+          secondaryColor: { type: Type.STRING },
+          backgroundImageUrl: { type: Type.STRING }
+        },
+        required: ["layoutId", "title", "subtitle", "accentColor", "secondaryColor"]
+      }
+    }
+  });
+  const cover = JSON.parse(coverResponse.text.trim()) as CoverConfig;
+
+  onProgress("Commissioning Editorial Feature...");
+  const feature = await researchAndDesignFeature(topic, "Create a deep-dive editorial feature with high-end typography.");
+
+  onProgress("Curating Digital Artifacts Gallery...");
+  const listicle = await researchAndDesignListicleCrew(topic, "Curate 6 high-end artifacts or products related to the topic.");
+
+  onProgress("Deploying Lead Acquisition Terminal...");
+  const leadGen = await researchAndDesignLeadGenCrew(topic, "Design a high-converting waitlist or consultation form.");
+
+  onProgress("Finding Related Archives...");
+  const externalSlides = await curateMagazineIssue(topic, 2);
+
+  const slides: WebsiteSlide[] = [
+    { ...feature, id: 'slide-feature', type: 'internal' },
+    { ...listicle, id: 'slide-listicle', type: 'internal' },
+    { ...leadGen, id: 'slide-leadgen', type: 'internal' },
+    ...externalSlides
+  ];
+
+  onProgress("Publication Ready.");
+  return { cover, slides };
+}
+
+/**
  * The Application Architect Crew
  */
 export async function researchAndDesignMiniAppCrew(
@@ -293,7 +344,7 @@ export async function researchAndDesignListicleCrew(
   webhookUrl?: string
 ): Promise<any> {
   const result = await generateWithScrapingCrew(
-    `Act as an elite 'Listicle Expert Crew'. Topic: "${topic}". IMAGE: "${imageUrl || ''}". MISSION: Generate 9-12 items. Use a high-end grid or 2-column layout where appropriate.`,
+    `Act as an elite 'Listicle Expert Crew'. Topic: "${topic}". IMAGE: "${imageUrl || ''}". MISSION: Generate 6-9 items. Use a high-end grid or 2-column layout where appropriate.`,
     sources,
     sheetSources,
     driveSources,
@@ -347,8 +398,21 @@ export async function researchAndDesignFeature(
   driveSources: string[] = [],
   webhookUrl?: string
 ): Promise<any> {
+  const prompt = `
+    Act as a 'Feature Research Crew'. Topic: "${keyword}". FEATURED IMAGE: "${imageUrl || ''}". 
+    MISSION: Create a world-class feature story using a premium 2-column Editorial layout.
+    
+    ENGAGEMENT REQUIREMENTS:
+    1. RIGHT COLUMN MUST BE DYNAMIC: Use high-end typography with Tailwind.
+    2. INCLUDE: Large pull-quotes with italic serif fonts.
+    3. INCLUDE: A 'Quick Stats' or 'Key Takeaways' box with a soft border or background.
+    4. INCLUDE: Multi-section storytelling with distinct headers.
+    5. OPTIMIZE IMAGE: Ensure high resolution (append &w=1600&q=90 if Unsplash).
+    6. TEXT COLOR: Ensure all text in the right column is black (#000000).
+  `;
+
   return generateWithScrapingCrew(
-    `Act as a 'Feature Research Crew'. Topic: "${keyword}". FEATURED IMAGE: "${imageUrl || ''}". Use a premium 2-column Editorial layout.`,
+    prompt,
     sources,
     sheetSources,
     driveSources,
@@ -365,145 +429,6 @@ export async function researchAndDesignFeature(
       required: ["title", "description", "category", "accentColor", "content"]
     }
   );
-}
-
-export async function researchAndDesignCourseCrew(
-  topic: string, 
-  instructions: string, 
-  imageUrl?: string,
-  sources: string[] = [], 
-  sheetSources: string[] = [], 
-  driveSources: string[] = [],
-  webhookUrl?: string
-): Promise<any> {
-  const specializedPrompt = `
-    Act as an elite 'Course Creator Expert Crew'. 
-    MISSION: Generate a high-fidelity 2-column course landing page.
-    
-    1. LAYOUT ARCHITECTURE (MANDATORY):
-       - LEFT COLUMN (EDITORIAL): Display course title ("${topic}"), objectives, and FEATURED IMAGE ("${imageUrl || ''}") in a premium magazine style. All text must be black.
-       - RIGHT COLUMN (CURRICULUM): Interactive lesson grid, enrollment logic, and syllabus on a clean light background. 
-    
-    CRITICAL: Use window.trackEnrollment(courseId, action, targetUrl).
-    TOPIC: "${topic}"
-    DIRECTIVES: ${instructions}
-  `;
-
-  return generateWithScrapingCrew(
-    specializedPrompt,
-    sources,
-    sheetSources,
-    driveSources,
-    webhookUrl,
-    {
-      type: Type.OBJECT,
-      properties: {
-        title: { type: Type.STRING },
-        subtitle: { type: Type.STRING },
-        description: { type: Type.STRING },
-        price: { type: Type.STRING },
-        category: { type: Type.STRING },
-        accentColor: { type: Type.STRING },
-        content: { type: Type.STRING, description: "2-column layout with Editorial/Curriculum split." }
-      },
-      required: ["title", "description", "category", "accentColor", "content"]
-    }
-  );
-}
-
-export async function researchAndDesignChatbotCrew(
-  niche: string, 
-  instructions: string, 
-  imageUrl?: string,
-  sources: string[] = [], 
-  sheetSources: string[] = [], 
-  driveSources: string[] = [],
-  webhookUrl?: string
-): Promise<any> {
-  const specializedPrompt = `
-    Act as a 'Chatbot Architect Crew'. 
-    MISSION: Build an interactive chatbot using a mandatory 2-column layout.
-    
-    1. LAYOUT ARCHITECTURE (MANDATORY):
-       - LEFT COLUMN (EDITORIAL): Featured brand image ("${imageUrl || ''}"), title ("${niche}"), and mission statement in black text.
-       - RIGHT COLUMN (CHAT LAB): Modern, clean chat interface on a light background.
-    
-    INTERACTION: Use window.sendQuickReply(text) and window.sendMessage(text).
-    NICHE: "${niche}".
-    ADDITIONAL CONTEXT: ${instructions}
-  `;
-
-  return generateWithScrapingCrew(
-    specializedPrompt,
-    sources,
-    sheetSources,
-    driveSources,
-    webhookUrl,
-    {
-      type: Type.OBJECT,
-      properties: {
-        title: { type: Type.STRING },
-        description: { type: Type.STRING },
-        category: { type: Type.STRING },
-        accentColor: { type: Type.STRING },
-        content: { type: Type.STRING, description: "2-column layout with Editorial/Chat split." }
-      },
-      required: ["title", "description", "category", "accentColor", "content"]
-    }
-  );
-}
-
-export async function researchAndDesignProductGallery(
-  topic: string, 
-  instructions: string, 
-  imageUrl?: string,
-  sources: string[] = [], 
-  sheetSources: string[] = [], 
-  driveSources: string[] = [],
-  webhookUrl?: string
-): Promise<any> {
-  const result = await generateWithScrapingCrew(
-    `Act as a 'Product Gallery Crew'. Topic: "${topic}". IMAGE: "${imageUrl || ''}". Use a 2-column split if relevant or a high-end editorial showcase.`,
-    sources,
-    sheetSources,
-    driveSources,
-    webhookUrl,
-    {
-      type: Type.OBJECT,
-      properties: {
-        title: { type: Type.STRING },
-        description: { type: Type.STRING },
-        category: { type: Type.STRING },
-        accentColor: { type: Type.STRING },
-        listicleData: {
-          type: Type.OBJECT,
-          properties: {
-            sidebarImage: { type: Type.STRING },
-            items: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  title: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  imageUrl: { type: Type.STRING },
-                  link: { type: Type.STRING },
-                  price: { type: Type.STRING }
-                },
-                required: ["id", "title", "description"]
-              }
-            }
-          },
-          required: ["items"]
-        }
-      },
-      required: ["title", "description", "category", "accentColor", "listicleData"]
-    }
-  );
-
-  result.content = generateListicleHtml(result.title, result.listicleData);
-  return result;
 }
 
 export async function curateMagazineIssue(
@@ -643,15 +568,25 @@ export async function researchAndDesignBlogCrew(
 ): Promise<any> {
   const specializedPrompt = `
     Act as an elite 'Blog Expert Crew'. 
-    MISSION: Construct a premium 2-column blog article.
+    MISSION: Construct a premium 2-column standalone HTML blog article with HIGH ENGAGEMENT.
     
-    1. RAW CONTENT: Use the following text as the primary article source: "${rawContent}"
+    1. LAYOUT ARCHITECTURE (STRICT ADHERENCE):
+       - GENERATE A COMPLETE STANDALONE HTML DOCUMENT including <!DOCTYPE html>, <html>, <head>, and <body>.
+       - Include Tailwind CDN: <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+       - Include Google Fonts: Playfair Display and Inter.
+       - MAIN CONTENT:
+            - A flex container (flex-col md:flex-row h-screen).
+            - LEFT COLUMN (STICKY HERO): w-full md:w-1/2 h-[50vh] md:h-full relative overflow-hidden.
+                - Featured Image: "${imageUrl || ''}" (ensure high-res by stripping thumbnail suffixes).
+                - Overlay: Subtle dark gradient for depth.
+                - Label: At the bottom left, large serif italic text for branding context.
+            - RIGHT COLUMN (SCROLLABLE EDITORIAL): w-full md:w-1/2 h-full bg-white overflow-y-auto.
+                - TEXT COLOR: ALL CONTENT TEXT MUST BE BLACK (#000000).
+                - TYPOGRAPHY: Elegant Serif (Playfair Display) for headers, clean sans-serif (Inter) for body.
+                - ELEMENTS: Large bold drop-cap, pull-quotes with borders, highlighted data blocks, and a clean contact footer.
     
-    2. MANDATORY ARCHITECTURE:
-       - LEFT (EDITORIAL): Featured background image ("${imageUrl || ''}"), Title ("${topic}"), and a sophisticated editorial brief in black text.
-       - RIGHT (ARTICLE LAB): A beautifully laid out blog post based on the RAW CONTENT. Use bold drop-caps, elegant serif typography (Playfair Display) for headers, and clean sans-serif for the body. Ensure all text is black on white. 
-    
-    TOPIC: "${topic}". INSTRUCTIONS: ${instructions}.
+    TOPIC: "${topic}". BRIEF: "${instructions}". ARTICLE TEXT: "${rawContent}".
+    CRITICAL: The output must be valid, standalone HTML ready for an iframe srcdoc.
   `;
 
   return generateWithScrapingCrew(
@@ -667,7 +602,7 @@ export async function researchAndDesignBlogCrew(
         description: { type: Type.STRING },
         category: { type: Type.STRING },
         accentColor: { type: Type.STRING },
-        content: { type: Type.STRING, description: "2-column blog article with Editorial/Article split." }
+        content: { type: Type.STRING, description: "Complete standalone HTML document for the 'Built by Neighbors' sticky layout with rich black text editorial content." }
       },
       required: ["title", "description", "category", "accentColor", "content"]
     }
@@ -701,4 +636,143 @@ export async function researchAndDesignAdCrew(
       required: ["title", "description", "category", "accentColor", "content"]
     }
   );
+}
+
+export async function researchAndDesignChatbotCrew(
+  niche: string, 
+  instructions: string, 
+  imageUrl?: string,
+  sources: string[] = [], 
+  sheetSources: string[] = [], 
+  driveSources: string[] = [],
+  webhookUrl?: string
+): Promise<any> {
+  const specializedPrompt = `
+    Act as a 'Chatbot Architect Crew'. 
+    MISSION: Build an interactive chatbot using a mandatory 2-column layout.
+    
+    1. LAYOUT ARCHITECTURE (MANDATORY):
+       - LEFT COLUMN (EDITORIAL): Featured brand image ("${imageUrl || ''}"), title ("${niche}"), and mission statement in black text.
+       - RIGHT COLUMN (CHAT LAB): Modern, clean chat interface on a light background.
+    
+    INTERACTION: Use window.sendQuickReply(text) and window.sendMessage(text).
+    NICHE: "${niche}".
+    ADDITIONAL CONTEXT: ${instructions}
+  `;
+
+  return generateWithScrapingCrew(
+    specializedPrompt,
+    sources,
+    sheetSources,
+    driveSources,
+    webhookUrl,
+    {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING },
+        description: { type: Type.STRING },
+        category: { type: Type.STRING },
+        accentColor: { type: Type.STRING },
+        content: { type: Type.STRING, description: "2-column layout with Editorial/Chat split." }
+      },
+      required: ["title", "description", "category", "accentColor", "content"]
+    }
+  );
+}
+
+export async function researchAndDesignCourseCrew(
+  topic: string, 
+  instructions: string, 
+  imageUrl?: string,
+  sources: string[] = [], 
+  sheetSources: string[] = [], 
+  driveSources: string[] = [],
+  webhookUrl?: string
+): Promise<any> {
+  const specializedPrompt = `
+    Act as an elite 'Course Creator Expert Crew'. 
+    MISSION: Generate a high-fidelity 2-column course landing page.
+    
+    1. LAYOUT ARCHITECTURE (MANDATORY):
+       - LEFT COLUMN (EDITORIAL): Display course title ("${topic}"), objectives, and FEATURED IMAGE ("${imageUrl || ''}") in a premium magazine style. All text must be black.
+       - RIGHT COLUMN (CURRICULUM): Interactive lesson grid, enrollment logic, and syllabus on a clean light background. 
+    
+    CRITICAL: Use window.trackEnrollment(courseId, action, targetUrl).
+    TOPIC: "${topic}"
+    DIRECTIVES: ${instructions}
+  `;
+
+  return generateWithScrapingCrew(
+    specializedPrompt,
+    sources,
+    sheetSources,
+    driveSources,
+    webhookUrl,
+    {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING },
+        subtitle: { type: Type.STRING },
+        description: { type: Type.STRING },
+        price: { type: Type.STRING },
+        category: { type: Type.STRING },
+        accentColor: { type: Type.STRING },
+        content: { type: Type.STRING, description: "2-column layout with Editorial/Curriculum split." }
+      },
+      required: ["title", "description", "category", "accentColor", "content"]
+    }
+  );
+}
+
+export async function researchAndDesignProductGallery(
+  topic: string, 
+  instructions: string, 
+  imageUrl?: string,
+  sources: string[] = [], 
+  sheetSources: string[] = [], 
+  driveSources: string[] = [],
+  webhookUrl?: string
+): Promise<any> {
+  const result = await generateWithScrapingCrew(
+    `Act as a 'Product Gallery Crew'. Topic: "${topic}". IMAGE: "${imageUrl || ''}". Use a 2-column split if relevant or a high-end editorial showcase.`,
+    sources,
+    sheetSources,
+    driveSources,
+    webhookUrl,
+    {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING },
+        description: { type: Type.STRING },
+        category: { type: Type.STRING },
+        accentColor: { type: Type.STRING },
+        listicleData: {
+          type: Type.OBJECT,
+          properties: {
+            sidebarImage: { type: Type.STRING },
+            items: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  title: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  imageUrl: { type: Type.STRING },
+                  link: { type: Type.STRING },
+                  price: { type: Type.STRING }
+                },
+                required: ["id", "title", "description"]
+              }
+            }
+          },
+          required: ["items"]
+        }
+      },
+      required: ["title", "description", "category", "accentColor", "listicleData"]
+    }
+  );
+
+  result.content = generateListicleHtml(result.title, result.listicleData);
+  return result;
 }
