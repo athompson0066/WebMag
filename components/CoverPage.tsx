@@ -15,7 +15,9 @@ const getYouTubeId = (url: string) => {
 };
 
 const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, slides }) => {
-  const { layoutId, title, subtitle, accentColor, secondaryColor, backgroundImageUrl, backgroundVideoUrl } = config;
+  const { layoutId, title, subtitle, accentColor, secondaryColor, backgroundImageUrl, backgroundVideoUrl, titleFontSize } = config;
+
+  const titleStyle = titleFontSize ? { fontSize: `${titleFontSize}px`, lineHeight: '0.8' } : {};
 
   const StartButton = () => (
     <button 
@@ -53,7 +55,10 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
           <span className="h-[2px] w-12 bg-black"></span>
           <span className="text-[10px] font-black uppercase tracking-[0.5em]">Issue 004 // Spring 2025</span>
         </div>
-        <h1 className="text-[4.5rem] md:text-[8rem] font-serif font-black uppercase leading-[0.75] mb-12 tracking-tighter italic">
+        <h1 
+          className="text-[4.5rem] md:text-[8rem] font-serif font-black uppercase leading-[0.75] mb-12 tracking-tighter italic"
+          style={titleStyle}
+        >
           {title.split(' ').map((word, i) => (
             <span key={i} className="block transition-all duration-200">{word}</span>
           ))}
@@ -72,7 +77,12 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
       )}
       <div className="max-w-4xl relative z-10">
         <div className="mb-12 text-white/40 font-mono text-[9px] uppercase tracking-[0.8em]">The Digital Monograph</div>
-        <h1 className="text-7xl md:text-[11rem] font-serif font-light mb-12 text-white tracking-tighter leading-[0.8] italic">{title}</h1>
+        <h1 
+          className="text-7xl md:text-[11rem] font-serif font-light mb-12 text-white tracking-tighter leading-[0.8] italic"
+          style={titleStyle}
+        >
+          {title}
+        </h1>
         <div className="w-24 h-[1px] bg-white/20 mb-12"></div>
         <p className="text-xl md:text-2xl text-zinc-400 mb-16 italic font-light leading-relaxed max-w-2xl">{subtitle}</p>
         <StartButton />
@@ -89,7 +99,12 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
       <div className="relative z-10 flex flex-col h-full">
         <div className="text-6xl font-serif italic font-black text-white mb-auto tracking-tighter">WebMag.</div>
         <div className="max-w-4xl py-20">
-          <h1 className="text-6xl md:text-[10rem] font-serif font-black text-white leading-[0.8] uppercase tracking-tighter mb-12 break-words">{title}</h1>
+          <h1 
+            className="text-6xl md:text-[10rem] font-serif font-black text-white leading-[0.8] uppercase tracking-tighter mb-12 break-words"
+            style={titleStyle}
+          >
+            {title}
+          </h1>
           <p className="text-2xl text-zinc-400 italic mb-12 font-light">{subtitle}</p>
           <StartButton />
         </div>
@@ -111,7 +126,12 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
         <div className="mb-10 px-4 py-1 border border-white/20 inline-block">
           <span className="text-[9px] font-black uppercase tracking-[0.6em] text-white/60">Digital Curatorial Board</span>
         </div>
-        <h1 className="text-7xl md:text-[12rem] font-serif font-black mb-10 leading-[0.75] tracking-tighter text-white italic">{title}</h1>
+        <h1 
+          className="text-7xl md:text-[12rem] font-serif font-black mb-10 leading-[0.75] tracking-tighter text-white italic"
+          style={titleStyle}
+        >
+          {title}
+        </h1>
         <p className="text-2xl text-zinc-400 italic mb-16 font-light max-w-2xl">{subtitle}</p>
         <StartButton />
       </div>
@@ -130,7 +150,12 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div>
            <div className="text-white font-black text-4xl mb-8">W.M.</div>
-           <h1 className="text-7xl md:text-[11rem] font-black text-white tracking-tighter uppercase leading-[0.8]">{title}</h1>
+           <h1 
+            className="text-7xl md:text-[11rem] font-black text-white tracking-tighter uppercase leading-[0.8]"
+            style={titleStyle}
+           >
+             {title}
+           </h1>
         </div>
         <div className="max-w-xl">
           <p className="text-zinc-500 uppercase tracking-[0.6em] mb-12 text-[10px] font-black leading-relaxed">{subtitle}</p>
@@ -149,7 +174,12 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
       <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent"></div>
       <div className="relative z-10 max-w-4xl text-left">
         <span className="text-white/40 text-[10px] uppercase tracking-[1em] mb-8 block">Ref. Arch-Digital</span>
-        <h1 className="text-[5.5rem] md:text-[10rem] font-serif font-black text-white tracking-tighter leading-[0.75] mb-12 italic">{title}</h1>
+        <h1 
+          className="text-[5.5rem] md:text-[10rem] font-serif font-black text-white tracking-tighter leading-[0.75] mb-12 italic"
+          style={titleStyle}
+        >
+          {title}
+        </h1>
         <p className="text-2xl text-zinc-300 mb-16 font-light italic border-l-[3px] border-white/20 pl-12 max-w-2xl leading-relaxed">{subtitle}</p>
         <StartButton />
       </div>
@@ -169,14 +199,14 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
   };
 
   return (
-    <div className="w-screen h-screen flex flex-col lg:flex-row bg-[#050505] overflow-hidden">
+    <div className="w-screen h-screen flex flex-col lg:flex-row bg-[#050505] overflow-y-auto lg:overflow-hidden">
       {/* Magazine Cover Left */}
-      <div className="relative w-full lg:w-[65%] h-full overflow-hidden shadow-[30px_0_60px_rgba(0,0,0,0.5)] z-20">
+      <div className="relative w-full lg:w-[65%] h-screen lg:h-full overflow-hidden shadow-[30px_0_60px_rgba(0,0,0,0.5)] z-20 flex-shrink-0">
         {renderLayout()}
       </div>
 
       {/* Editorial Index Right */}
-      <div className="w-full lg:w-[35%] h-full z-10 p-12 md:p-20 bg-[#050505] overflow-y-auto no-scrollbar border-l border-white/5">
+      <div className="w-full lg:w-[35%] h-auto lg:h-full z-10 p-12 md:p-20 bg-[#050505] overflow-y-auto no-scrollbar border-l border-white/5">
         <header className="mb-16 border-b border-white/10 pb-12">
           <span className="text-[10px] font-black uppercase tracking-[0.5em] text-zinc-600 block mb-4">Table of Contents</span>
           <h4 className="text-5xl font-serif italic text-white tracking-tighter">In This Issue.</h4>

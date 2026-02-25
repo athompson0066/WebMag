@@ -8,6 +8,7 @@ export interface CoverConfig {
   secondaryColor: string;
   backgroundImageUrl?: string;
   backgroundVideoUrl?: string;
+  titleFontSize?: number;
 }
 
 export interface ListicleItem {

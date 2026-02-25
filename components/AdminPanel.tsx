@@ -16,7 +16,8 @@ import {
   researchAndDesignLeadGenCrew,
   researchAndDesignVideoStoryCrew,
   generateListicleHtml,
-  orchestrateMagazineIssue
+  orchestrateMagazineIssue,
+  ensureApiKey
 } from '../services/geminiService';
 
 interface AdminPanelProps {
@@ -69,6 +70,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleInstantOrchestrate = async () => {
     if (!genTopic) return;
+    await ensureApiKey();
     setIsDesigning(true);
     try {
       const result = await orchestrateMagazineIssue(genTopic, (msg) => setDesignProgress(msg));
@@ -264,6 +266,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleDesignCrewGeneration = async () => {
+    await ensureApiKey();
     setIsDesigning(true);
     setDesignProgress("Briefing Design Crew...");
     const validScrapeSources = scrapingUrls.filter(u => u.trim().length > 0);
@@ -671,6 +674,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 <section>
                   <label className="text-[10px] uppercase tracking-[0.4em] font-black text-zinc-600 mb-6 block">Publication Title</label>
                   <input value={coverConfig.title} onChange={e => onUpdateCover({...coverConfig, title: e.target.value})} className="w-full bg-transparent border-b border-white/10 p-4 text-5xl font-serif font-black italic outline-none focus:border-white transition-all text-white placeholder-zinc-800" placeholder="Brand Name" />
+                </section>
+                <section>
+                  <div className="flex justify-between items-center mb-6">
+                    <label className="text-[10px] uppercase tracking-[0.4em] font-black text-zinc-600 block">Title Font Size</label>
+                    <span className="text-[10px] font-mono text-zinc-400">{coverConfig.titleFontSize || 120}px</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="40" 
+                    max="300" 
+                    value={coverConfig.titleFontSize || 120} 
+                    onChange={e => onUpdateCover({...coverConfig, titleFontSize: parseInt(e.target.value)})} 
+                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-500" 
+                  />
                 </section>
                 <section>
                   <label className="text-[10px] uppercase tracking-[0.4em] font-black text-zinc-600 mb-6 block">Subtitle / Meta</label>

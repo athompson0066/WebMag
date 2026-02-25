@@ -2,13 +2,26 @@
 import { createClient } from '@supabase/supabase-js';
 import { WebsiteSlide, CoverConfig } from '../types';
 
-const SUPABASE_URL = 'https://irlxxeoocqktiuulfuqb.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlybHh4ZW9vY3FrdGl1dWxmdXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5MDU2MTgsImV4cCI6MjA3NDQ4MTYxOH0.1rjQgX34Kj8R_ibQ6LsmXl6J3WI8d5kEXrk3SbB6iyg';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabaseClient: ReturnType<typeof createClient> | null = null;
+
+function getSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return null;
+  }
+  if (!supabaseClient) {
+    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return supabaseClient;
+}
 
 export async function fetchSlidesFromSupabase(): Promise<WebsiteSlide[]> {
-  const { data, error } = await supabase
+  const client = getSupabase();
+  if (!client) return [];
+
+  const { data, error } = await client
     .from('slides')
     .select('*')
     .order('created_at', { ascending: true });
@@ -17,11 +30,14 @@ export async function fetchSlidesFromSupabase(): Promise<WebsiteSlide[]> {
     console.error('Error fetching slides:', error);
     return [];
   }
-  return data as WebsiteSlide[];
+  return (data as any) as WebsiteSlide[];
 }
 
 export async function saveSlideToSupabase(slide: WebsiteSlide) {
-  const { error } = await supabase
+  const client = getSupabase();
+  if (!client) return;
+
+  const { error } = await client
     .from('slides')
     .upsert({
       id: slide.id,
@@ -42,7 +58,10 @@ export async function saveSlideToSupabase(slide: WebsiteSlide) {
 }
 
 export async function removeSlideFromSupabase(id: string) {
-  const { error } = await supabase
+  const client = getSupabase();
+  if (!client) return;
+
+  const { error } = await client
     .from('slides')
     .delete()
     .eq('id', id);
@@ -51,9 +70,10 @@ export async function removeSlideFromSupabase(id: string) {
 }
 
 export async function saveMultipleSlidesToSupabase(slides: WebsiteSlide[]) {
-  // First, clear existing slides if necessary or handle upsert carefully
-  // For a "Magazine Issue", we usually want to sync the whole set
-  const { error } = await supabase
+  const client = getSupabase();
+  if (!client) return;
+
+  const { error } = await client
     .from('slides')
     .upsert(slides.map(slide => ({
       id: slide.id,
@@ -74,7 +94,10 @@ export async function saveMultipleSlidesToSupabase(slides: WebsiteSlide[]) {
 }
 
 export async function fetchCoverConfigFromSupabase(): Promise<CoverConfig | null> {
-  const { data, error } = await supabase
+  const client = getSupabase();
+  if (!client) return null;
+
+  const { data, error } = await client
     .from('config')
     .select('value')
     .eq('key', 'cover_config')
@@ -88,7 +111,10 @@ export async function fetchCoverConfigFromSupabase(): Promise<CoverConfig | null
 }
 
 export async function saveCoverConfigToSupabase(config: CoverConfig) {
-  const { error } = await supabase
+  const client = getSupabase();
+  if (!client) return;
+
+  const { error } = await client
     .from('config')
     .upsert({
       key: 'cover_config',

@@ -20,7 +20,8 @@ const DEFAULT_COVER: CoverConfig = {
   title: 'Infinite Digital Horizon',
   subtitle: 'Curating the most influential corners of the web into a seamless sensory experience.',
   accentColor: '#6366f1',
-  secondaryColor: '#3b82f6'
+  secondaryColor: '#3b82f6',
+  titleFontSize: 120
 };
 
 const INITIAL_SLIDES: WebsiteSlide[] = [

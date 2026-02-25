@@ -2,7 +2,21 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { WebsiteSlide, ListicleData, CoverConfig } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY || '' });
+
+/**
+ * Check if API key is selected and prompt if not.
+ */
+export async function ensureApiKey(): Promise<boolean> {
+  if (typeof window !== 'undefined' && (window as any).aistudio) {
+    const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+    if (!hasKey) {
+      await (window as any).aistudio.openSelectKey();
+      return true; // Assume success after opening dialog
+    }
+  }
+  return true;
+}
 
 /**
  * Helper to generate the Listicle/Product Gallery HTML from structured data.
@@ -138,7 +152,7 @@ async function generateWithScrapingCrew(
     : "";
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
+    model: "gemini-3-flash-preview",
     contents: `${prompt}${sourceContext}${sheetContext}${driveContext}${webhookContext}${submissionContext}\nFinal Request: Synthesize all provided information into the required format. Ensure interactive widgets are fully functional with vanilla JS.`,
     config: {
       tools: [{ googleSearch: {} }],
@@ -154,50 +168,53 @@ async function generateWithScrapingCrew(
  * Orchestrates a full magazine issue generation
  */
 export async function orchestrateMagazineIssue(topic: string, onProgress: (msg: string) => void): Promise<{ cover: CoverConfig, slides: WebsiteSlide[] }> {
-  onProgress("Architecting Publication Cover...");
+  onProgress("Architecting Publication Issue...");
   
-  const coverResponse = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `Design a premium magazine cover config for the topic: "${topic}".`,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          layoutId: { type: Type.STRING, enum: ['minimal', 'brutalist', 'classic', 'gradient', 'grid', 'hero'] },
-          title: { type: Type.STRING },
-          subtitle: { type: Type.STRING },
-          accentColor: { type: Type.STRING },
-          secondaryColor: { type: Type.STRING },
-          backgroundImageUrl: { type: Type.STRING }
-        },
-        required: ["layoutId", "title", "subtitle", "accentColor", "secondaryColor"]
-      }
-    }
-  });
-  const cover = JSON.parse(coverResponse.text.trim()) as CoverConfig;
+  try {
+    // Run independent tasks in parallel
+    const [coverResponse, feature, listicle, leadGen, externalSlides] = await Promise.all([
+      ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Design a premium magazine cover config for the topic: "${topic}".`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              layoutId: { type: Type.STRING, enum: ['minimal', 'brutalist', 'classic', 'gradient', 'grid', 'hero'] },
+              title: { type: Type.STRING },
+              subtitle: { type: Type.STRING },
+              accentColor: { type: Type.STRING },
+              secondaryColor: { type: Type.STRING },
+              backgroundImageUrl: { type: Type.STRING },
+              titleFontSize: { type: Type.NUMBER }
+            },
+            required: ["layoutId", "title", "subtitle", "accentColor", "secondaryColor"]
+          }
+        }
+      }),
+      researchAndDesignFeature(topic, "Create a deep-dive editorial feature with high-end typography."),
+      researchAndDesignListicleCrew(topic, "Curate 6 high-end artifacts or products related to the topic."),
+      researchAndDesignLeadGenCrew(topic, "Design a high-converting waitlist or consultation form."),
+      curateMagazineIssue(topic, 2)
+    ]);
 
-  onProgress("Commissioning Editorial Feature...");
-  const feature = await researchAndDesignFeature(topic, "Create a deep-dive editorial feature with high-end typography.");
+    const cover = JSON.parse(coverResponse.text.trim()) as CoverConfig;
+    if (!cover.titleFontSize) cover.titleFontSize = 120;
 
-  onProgress("Curating Digital Artifacts Gallery...");
-  const listicle = await researchAndDesignListicleCrew(topic, "Curate 6 high-end artifacts or products related to the topic.");
+    const slides: WebsiteSlide[] = [
+      { ...feature, id: 'slide-feature', type: 'internal' },
+      { ...listicle, id: 'slide-listicle', type: 'internal' },
+      { ...leadGen, id: 'slide-leadgen', type: 'internal' },
+      ...externalSlides
+    ];
 
-  onProgress("Deploying Lead Acquisition Terminal...");
-  const leadGen = await researchAndDesignLeadGenCrew(topic, "Design a high-converting waitlist or consultation form.");
-
-  onProgress("Finding Related Archives...");
-  const externalSlides = await curateMagazineIssue(topic, 2);
-
-  const slides: WebsiteSlide[] = [
-    { ...feature, id: 'slide-feature', type: 'internal' },
-    { ...listicle, id: 'slide-listicle', type: 'internal' },
-    { ...leadGen, id: 'slide-leadgen', type: 'internal' },
-    ...externalSlides
-  ];
-
-  onProgress("Publication Ready.");
-  return { cover, slides };
+    onProgress("Publication Ready.");
+    return { cover, slides };
+  } catch (error) {
+    console.error("Orchestration failed:", error);
+    throw error;
+  }
 }
 
 /**
@@ -474,7 +491,7 @@ export async function curateMagazineIssue(
 
 export async function generateStudioLayout(content: string, instructions: string, imageUrl?: string): Promise<string> {
   const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
+    model: "gemini-3-flash-preview",
     contents: `Act as a 'Digital Editorial Design Crew'. Construct a premium 2-column magazine layout. 
     LEFT: Image ("${imageUrl || ''}") and Title. 
     RIGHT: Content. 
