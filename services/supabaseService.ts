@@ -40,7 +40,21 @@ export async function fetchSlidesFromSupabase(): Promise<WebsiteSlide[]> {
     console.error('Error fetching slides:', error);
     return [];
   }
-  return (data as any) as WebsiteSlide[];
+
+  return (data as any[]).map(row => ({
+    id: row.id,
+    type: row.type,
+    url: row.url,
+    content: row.content,
+    title: row.title,
+    description: row.description,
+    category: row.category,
+    accentColor: row.accentcolor,
+    listicleData: row.listicledata,
+    webhookUrl: row.webhookurl,
+    googleSheetSubmissionUrl: row.googlesheetsubmissionurl,
+    price: row.price
+  }));
 }
 
 export async function saveSlideToSupabase(slide: WebsiteSlide) {
@@ -57,10 +71,10 @@ export async function saveSlideToSupabase(slide: WebsiteSlide) {
       title: slide.title,
       description: slide.description,
       category: slide.category,
-      accentColor: slide.accentColor,
-      listicleData: slide.listicleData,
-      webhookUrl: slide.webhookUrl,
-      googleSheetSubmissionUrl: slide.googleSheetSubmissionUrl,
+      accentcolor: slide.accentColor,
+      listicledata: slide.listicleData,
+      webhookurl: slide.webhookUrl,
+      googlesheetsubmissionurl: slide.googleSheetSubmissionUrl,
       price: slide.price
     });
 
@@ -97,10 +111,10 @@ export async function saveMultipleSlidesToSupabase(slides: WebsiteSlide[]) {
       title: slide.title,
       description: slide.description,
       category: slide.category,
-      accentColor: slide.accentColor,
-      listicleData: slide.listicleData,
-      webhookUrl: slide.webhookUrl,
-      googleSheetSubmissionUrl: slide.googleSheetSubmissionUrl,
+      accentcolor: slide.accentColor,
+      listicledata: slide.listicleData,
+      webhookurl: slide.webhookUrl,
+      googlesheetsubmissionurl: slide.googleSheetSubmissionUrl,
       price: slide.price
     })));
 
