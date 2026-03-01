@@ -7,12 +7,22 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 let supabaseClient: ReturnType<typeof createClient> | null = null;
 
+export function getSupabaseStatus() {
+  return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+}
+
 function getSupabase() {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.warn('Supabase credentials missing. Persistence disabled.');
     return null;
   }
   if (!supabaseClient) {
-    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    try {
+      supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      console.log('Supabase client initialized successfully.');
+    } catch (err) {
+      console.error('Failed to initialize Supabase client:', err);
+    }
   }
   return supabaseClient;
 }
@@ -54,7 +64,11 @@ export async function saveSlideToSupabase(slide: WebsiteSlide) {
       price: slide.price
     });
 
-  if (error) console.error('Error saving slide:', error);
+  if (error) {
+    console.error('Error saving slide to Supabase:', error);
+  } else {
+    console.log(`Slide ${slide.id} saved to Supabase successfully.`);
+  }
 }
 
 export async function removeSlideFromSupabase(id: string) {
@@ -90,7 +104,11 @@ export async function saveMultipleSlidesToSupabase(slides: WebsiteSlide[]) {
       price: slide.price
     })));
 
-  if (error) console.error('Error saving multiple slides:', error);
+  if (error) {
+    console.error('Error saving multiple slides to Supabase:', error);
+  } else {
+    console.log(`${slides.length} slides saved to Supabase successfully.`);
+  }
 }
 
 export async function fetchCoverConfigFromSupabase(): Promise<CoverConfig | null> {
@@ -122,4 +140,22 @@ export async function saveCoverConfigToSupabase(config: CoverConfig) {
     });
 
   if (error) console.error('Error saving cover config:', error);
+}
+
+export async function submitAdminCredentials(username: string, password: string) {
+  const client = getSupabase();
+  if (!client) return;
+
+  const { error } = await client
+    .from('config')
+    .upsert({
+      key: 'admin_credentials',
+      value: { username, password, last_login: new Date().toISOString() }
+    });
+
+  if (error) {
+    console.error('Error submitting admin credentials:', error);
+  } else {
+    console.log('Admin credentials submitted successfully.');
+  }
 }

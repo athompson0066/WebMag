@@ -2,7 +2,21 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { WebsiteSlide, ListicleData, CoverConfig } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY || '' });
+
+/**
+ * Helper to get a fresh GoogleGenAI instance with the latest API key.
+ */
+function getAi() {
+  const key = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+  
+  if (!key) {
+    console.warn("Gemini API Key is missing from environment.");
+  } else {
+    console.log(`Gemini API Key detected (starts with: ${key.substring(0, 4)}...)`);
+  }
+  
+  return new GoogleGenAI({ apiKey: key });
+}
 
 /**
  * Check if API key is selected and prompt if not.
@@ -151,6 +165,7 @@ async function generateWithScrapingCrew(
     ? `\n\nLEAD SUBMISSION MISSION: The generated form MUST submit its result to this Google Apps Script / Google Sheets endpoint: ${googleSheetSubmissionUrl}.`
     : "";
 
+  const ai = getAi();
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `${prompt}${sourceContext}${sheetContext}${driveContext}${webhookContext}${submissionContext}\nFinal Request: Synthesize all provided information into the required format. Ensure interactive widgets are fully functional with vanilla JS.`,
@@ -170,6 +185,7 @@ async function generateWithScrapingCrew(
 export async function orchestrateMagazineIssue(topic: string, onProgress: (msg: string) => void): Promise<{ cover: CoverConfig, slides: WebsiteSlide[] }> {
   onProgress("Architecting Publication Issue...");
   
+  const ai = getAi();
   try {
     // Run independent tasks in parallel
     const [coverResponse, feature, listicle, leadGen, externalSlides] = await Promise.all([
@@ -187,7 +203,9 @@ export async function orchestrateMagazineIssue(topic: string, onProgress: (msg: 
               accentColor: { type: Type.STRING },
               secondaryColor: { type: Type.STRING },
               backgroundImageUrl: { type: Type.STRING },
-              titleFontSize: { type: Type.NUMBER }
+              titleFontSize: { type: Type.NUMBER },
+              titleFont: { type: Type.STRING, description: "Google Font name for titles (e.g. 'Playfair Display', 'Anton', 'Space Grotesk')" },
+              bodyFont: { type: Type.STRING, description: "Google Font name for body text (e.g. 'Inter', 'Montserrat', 'Lora')" }
             },
             required: ["layoutId", "title", "subtitle", "accentColor", "secondaryColor"]
           }
@@ -254,7 +272,9 @@ export async function researchAndDesignMiniAppCrew(
         description: { type: Type.STRING },
         category: { type: Type.STRING },
         accentColor: { type: Type.STRING },
-        content: { type: Type.STRING, description: "Complete HTML/JS/CSS application with 2-column editorial/functional split." }
+        content: { type: Type.STRING, description: "Complete HTML/JS/CSS application with 2-column editorial/functional split." },
+        titleFont: { type: Type.STRING },
+        bodyFont: { type: Type.STRING }
       },
       required: ["title", "description", "category", "accentColor", "content"]
     }
@@ -298,7 +318,9 @@ export async function researchAndDesignVideoStoryCrew(
         description: { type: Type.STRING },
         category: { type: Type.STRING },
         accentColor: { type: Type.STRING },
-        content: { type: Type.STRING, description: "2-column layout with Editorial/Theatre split." }
+        content: { type: Type.STRING, description: "2-column layout with Editorial/Theatre split." },
+        titleFont: { type: Type.STRING },
+        bodyFont: { type: Type.STRING }
       },
       required: ["title", "description", "category", "accentColor", "content"]
     }
@@ -343,7 +365,9 @@ export async function researchAndDesignLeadGenCrew(
         description: { type: Type.STRING },
         category: { type: Type.STRING },
         accentColor: { type: Type.STRING },
-        content: { type: Type.STRING, description: "2-column layout HTML with Editorial/Conversion split." }
+        content: { type: Type.STRING, description: "2-column layout HTML with Editorial/Conversion split." },
+        titleFont: { type: Type.STRING },
+        bodyFont: { type: Type.STRING }
       },
       required: ["title", "description", "category", "accentColor", "content"]
     },
@@ -421,8 +445,9 @@ export async function researchAndDesignFeature(
     
     ENGAGEMENT REQUIREMENTS:
     1. RIGHT COLUMN MUST BE DYNAMIC: Use high-end typography with Tailwind.
-    2. INCLUDE: Large pull-quotes with italic serif fonts.
-    3. INCLUDE: A 'Quick Stats' or 'Key Takeaways' box with a soft border or background.
+    2. INCLUDE: Large bold titles (font-black) and light body text (font-light).
+    3. INCLUDE: Large pull-quotes with italic serif fonts.
+    4. INCLUDE: A 'Quick Stats' or 'Key Takeaways' box with a soft border or background.
     4. INCLUDE: Multi-section storytelling with distinct headers.
     5. OPTIMIZE IMAGE: Ensure high resolution (append &w=1600&q=90 if Unsplash).
     6. TEXT COLOR: Ensure all text in the right column is black (#000000).
@@ -441,7 +466,9 @@ export async function researchAndDesignFeature(
         description: { type: Type.STRING },
         category: { type: Type.STRING },
         accentColor: { type: Type.STRING },
-        content: { type: Type.STRING }
+        content: { type: Type.STRING },
+        titleFont: { type: Type.STRING },
+        bodyFont: { type: Type.STRING }
       },
       required: ["title", "description", "category", "accentColor", "content"]
     }
@@ -454,6 +481,7 @@ export async function curateMagazineIssue(
   sourceUrl?: string,
   instructions?: string
 ): Promise<WebsiteSlide[]> {
+  const ai = getAi();
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `MISSION: Find ${count} real websites about "${topic}".`,
@@ -471,7 +499,9 @@ export async function curateMagazineIssue(
             description: { type: Type.STRING },
             category: { type: Type.STRING },
             accentColor: { type: Type.STRING },
-            type: { type: Type.STRING, description: "Must be 'external'" }
+            type: { type: Type.STRING, description: "Must be 'external'" },
+            titleFont: { type: Type.STRING },
+            bodyFont: { type: Type.STRING }
           },
           required: ["id", "url", "title", "description", "category", "accentColor", "type"]
         }
@@ -490,6 +520,7 @@ export async function curateMagazineIssue(
 }
 
 export async function generateStudioLayout(content: string, instructions: string, imageUrl?: string): Promise<string> {
+  const ai = getAi();
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `Act as a 'Digital Editorial Design Crew'. Construct a premium 2-column magazine layout. 
@@ -524,7 +555,9 @@ export async function researchAndDesignVideoGallery(
         description: { type: Type.STRING },
         category: { type: Type.STRING },
         accentColor: { type: Type.STRING },
-        content: { type: Type.STRING }
+        content: { type: Type.STRING },
+        titleFont: { type: Type.STRING },
+        bodyFont: { type: Type.STRING }
       },
       required: ["title", "description", "category", "accentColor", "content"]
     }
@@ -554,12 +587,15 @@ export async function generatePodcast(
         description: { type: Type.STRING },
         category: { type: Type.STRING },
         accentColor: { type: Type.STRING },
-        content: { type: Type.STRING }
+        content: { type: Type.STRING },
+        titleFont: { type: Type.STRING },
+        bodyFont: { type: Type.STRING }
       },
       required: ["title", "description", "category", "accentColor", "content"]
     }
   );
-
+  
+  const ai = getAi();
   const ttsResponse = await ai.models.generateContent({
     model: 'gemini-2.5-flash-preview-tts',
     contents: [{ parts: [{ text: `Welcome to this special curated podcast on ${topic}. Data provided by your integrated sources.` }] }],
@@ -600,6 +636,7 @@ export async function researchAndDesignBlogCrew(
             - RIGHT COLUMN (SCROLLABLE EDITORIAL): w-full md:w-1/2 h-full bg-white overflow-y-auto.
                 - TEXT COLOR: ALL CONTENT TEXT MUST BE BLACK (#000000).
                 - TYPOGRAPHY: Elegant Serif (Playfair Display) for headers, clean sans-serif (Inter) for body.
+                - WEIGHTS: Use font-black for all titles and headers, and font-light for all body paragraphs and descriptions.
                 - ELEMENTS: Large bold drop-cap, pull-quotes with borders, highlighted data blocks, and a clean contact footer.
     
     TOPIC: "${topic}". BRIEF: "${instructions}". ARTICLE TEXT: "${rawContent}".
@@ -619,7 +656,9 @@ export async function researchAndDesignBlogCrew(
         description: { type: Type.STRING },
         category: { type: Type.STRING },
         accentColor: { type: Type.STRING },
-        content: { type: Type.STRING, description: "Complete standalone HTML document for the 'Built by Neighbors' sticky layout with rich black text editorial content." }
+        content: { type: Type.STRING, description: "Complete standalone HTML document for the 'Built by Neighbors' sticky layout with rich black text editorial content." },
+        titleFont: { type: Type.STRING },
+        bodyFont: { type: Type.STRING }
       },
       required: ["title", "description", "category", "accentColor", "content"]
     }
@@ -648,7 +687,9 @@ export async function researchAndDesignAdCrew(
         description: { type: Type.STRING },
         category: { type: Type.STRING },
         accentColor: { type: Type.STRING },
-        content: { type: Type.STRING }
+        content: { type: Type.STRING },
+        titleFont: { type: Type.STRING },
+        bodyFont: { type: Type.STRING }
       },
       required: ["title", "description", "category", "accentColor", "content"]
     }
@@ -690,7 +731,9 @@ export async function researchAndDesignChatbotCrew(
         description: { type: Type.STRING },
         category: { type: Type.STRING },
         accentColor: { type: Type.STRING },
-        content: { type: Type.STRING, description: "2-column layout with Editorial/Chat split." }
+        content: { type: Type.STRING, description: "2-column layout with Editorial/Chat split." },
+        titleFont: { type: Type.STRING },
+        bodyFont: { type: Type.STRING }
       },
       required: ["title", "description", "category", "accentColor", "content"]
     }
@@ -734,7 +777,9 @@ export async function researchAndDesignCourseCrew(
         price: { type: Type.STRING },
         category: { type: Type.STRING },
         accentColor: { type: Type.STRING },
-        content: { type: Type.STRING, description: "2-column layout with Editorial/Curriculum split." }
+        content: { type: Type.STRING, description: "2-column layout with Editorial/Curriculum split." },
+        titleFont: { type: Type.STRING },
+        bodyFont: { type: Type.STRING }
       },
       required: ["title", "description", "category", "accentColor", "content"]
     }
@@ -792,4 +837,48 @@ export async function researchAndDesignProductGallery(
 
   result.content = generateListicleHtml(result.title, result.listicleData);
   return result;
+}
+
+export async function fetchExternalLinkMetadata(url: string): Promise<{
+  title: string;
+  subtitle: string;
+  description: string;
+  category: string;
+  accentColor: string;
+}> {
+  const ai = getAi();
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: `MISSION: Analyze the content of ${url} and extract metadata for a magazine slide.`,
+    config: {
+      tools: [{ urlContext: {} }],
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING, description: "Catchy title for the page" },
+          subtitle: { type: Type.STRING, description: "Short subtitle or tagline" },
+          description: { type: Type.STRING, description: "Brief description of the content" },
+          category: { type: Type.STRING, description: "One word category (e.g. TECH, DESIGN, LIFESTYLE)" },
+          accentColor: { type: Type.STRING, description: "Hex color that matches the brand of the site" }
+        },
+        required: ["title", "subtitle", "description", "category", "accentColor"]
+      }
+    }
+  });
+
+  try {
+    const jsonStr = response.text.trim();
+    const result = JSON.parse(jsonStr);
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch metadata:", error);
+    return {
+      title: "",
+      subtitle: "",
+      description: "",
+      category: "General",
+      accentColor: "#ffffff"
+    };
+  }
 }

@@ -202,92 +202,96 @@ const App: React.FC = () => {
   return (
     <div className="w-screen h-screen overflow-hidden bg-black font-sans selection:bg-white selection:text-black">
       {/* Universal Header */}
-      {appState !== AppState.COVER && (
-        <>
-          <div className="fixed top-0 left-0 w-full px-6 py-3 z-50 flex justify-between items-center bg-zinc-900/90 backdrop-blur-md border-b border-white/10 shadow-2xl transition-all duration-500">
-            <div className="flex items-center gap-6">
-              <div className="flex gap-1.5 px-2">
-                <div className="w-3 h-3 rounded-full bg-[#FF5F57] shadow-[0_0_8px_rgba(255,95,87,0.4)]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-[0_0_8px_rgba(254,188,46,0.4)]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#28C840] shadow-[0_0_8px_rgba(40,200,64,0.4)]"></div>
-              </div>
-
-              <div className="hidden sm:block text-[10px] font-black uppercase tracking-[0.4em] text-white border-l border-white/10 pl-6 ml-2 whitespace-nowrap">
-                {coverConfig.title}
-              </div>
-
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => setAppState(AppState.COVER)}
-                  className="group flex items-center gap-2 text-[10px] tracking-[0.3em] font-bold text-white uppercase px-4 py-2 border border-white/10 hover:bg-white hover:text-black transition-all bg-black/20"
-                >
-                  <span className="transform group-hover:-translate-x-1 transition-transform">←</span>
-                  Cover
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-               <button 
-                  onClick={() => setAppState(AppState.SALES)}
-                  className="hidden md:flex items-center gap-2 text-[9px] tracking-[0.3em] font-black text-amber-400 uppercase px-5 py-2.5 border border-amber-400/30 hover:bg-amber-400 hover:text-black transition-all bg-amber-400/5 mr-2"
-                >
-                  List Your Business
-                </button>
-
-               <div className="relative" ref={dropdownRef}>
-                  <button 
-                    onClick={() => setShowSequenceDropdown(!showSequenceDropdown)}
-                    className={`flex items-center gap-3 text-[10px] tracking-[0.2em] font-bold text-white uppercase px-4 py-2 border transition-all ${showSequenceDropdown ? 'bg-white text-black border-white' : 'bg-black/20 border-white/10 hover:border-white/30'}`}
-                  >
-                    <span>Menu</span>
-                    <span className={`text-[8px] transition-transform duration-300 ${showSequenceDropdown ? 'rotate-180' : ''}`}>▼</span>
-                  </button>
-
-                  {showSequenceDropdown && (
-                    <div className="absolute top-full right-0 mt-2 w-72 md:w-80 bg-zinc-950 border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.9)] z-[60] overflow-hidden flex flex-col max-h-[80vh]">
-                      <div className="p-5 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
-                        <span className="text-[9px] tracking-[0.4em] uppercase text-zinc-500 font-black">Issue Navigation</span>
-                      </div>
-                      <div className="overflow-y-auto admin-scroll p-2 flex-1">
-                        {slides.map((slide, i) => (
-                          <button
-                            key={slide.id}
-                            onClick={() => handleStartAtSlide(i)}
-                            className={`w-full text-left p-4 flex gap-4 hover:bg-white/[0.05] transition-colors group ${currentIndex === i ? 'bg-white/[0.03]' : ''}`}
-                          >
-                            <span className={`text-[10px] font-black mt-1 transition-colors ${currentIndex === i ? 'text-white' : 'text-zinc-700 group-hover:text-zinc-400'}`}>
-                              {(i + 1).toString().padStart(2, '0')}
-                            </span>
-                            <div className="min-w-0">
-                              <h4 className={`text-[11px] font-bold uppercase tracking-wider truncate mb-1 ${currentIndex === i ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}`}>
-                                {slide.title}
-                              </h4>
-                              <p className="text-[9px] text-zinc-600 uppercase tracking-widest">{slide.category}</p>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-               <button 
-                 onClick={() => setShowHud(!showHud)}
-                 className={`text-[10px] tracking-[0.3em] font-bold uppercase px-4 py-2 border border-white/10 transition-all bg-black/20 ${showHud ? 'text-zinc-400 hover:text-white' : 'text-white bg-white/10 border-white/40'}`}
-               >
-                 {showHud ? 'Hide Info' : 'Show Info'}
-               </button>
-               <button 
-                 onClick={() => setAppState(AppState.ADMIN)}
-                 className="text-[10px] tracking-[0.3em] font-bold text-white uppercase px-4 py-2 border border-white/10 hover:border-white transition-all bg-black/20 hover:bg-white/10"
-               >
-                 Admin
-               </button>
-            </div>
+      <div className={`fixed top-0 left-0 w-full px-6 py-3 z-50 flex justify-between items-center backdrop-blur-md border-b transition-all duration-500 ${appState === AppState.COVER ? 'bg-black/10 border-white/5' : 'bg-zinc-900/90 border-white/10 shadow-2xl'}`}>
+        <div className="flex items-center gap-3 sm:gap-6">
+          <div className="flex gap-1.5 px-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-[#FF5F57] shadow-[0_0_8px_rgba(255,95,87,0.4)]"></div>
+            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-[#FEBC2E] shadow-[0_0_8px_rgba(254,188,46,0.4)]"></div>
+            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-[#28C840] shadow-[0_0_8px_rgba(40,200,64,0.4)]"></div>
           </div>
-        </>
-      )}
+
+          <div className="hidden lg:block text-[10px] font-black uppercase tracking-[0.4em] text-white border-l border-white/10 pl-6 ml-2 whitespace-nowrap">
+            {coverConfig.title}
+          </div>
+          
+          <div className="lg:hidden text-[9px] font-black uppercase tracking-[0.3em] text-white/40 border-l border-white/10 pl-4 ml-1">
+            WM.04
+          </div>
+
+          {appState !== AppState.COVER && (
+            <div className="flex items-center gap-2 sm:gap-4">
+              <button 
+                onClick={() => setAppState(AppState.COVER)}
+                className="group flex items-center gap-2 text-[8px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] font-bold text-white uppercase px-3 sm:px-4 py-2 border border-white/10 hover:bg-white hover:text-black transition-all bg-black/20"
+              >
+                <span className="transform group-hover:-translate-x-1 transition-transform">←</span>
+                Cover
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+           <button 
+              onClick={() => setAppState(AppState.SALES)}
+              className="hidden xl:flex items-center gap-2 text-[9px] tracking-[0.3em] font-black text-amber-400 uppercase px-5 py-2.5 border border-amber-400/30 hover:bg-amber-400 hover:text-black transition-all bg-amber-400/5 mr-2"
+            >
+              List Your Business
+            </button>
+
+           <div className="relative" ref={dropdownRef}>
+              <button 
+                onClick={() => setShowSequenceDropdown(!showSequenceDropdown)}
+                className={`flex items-center gap-2 sm:gap-3 text-[8px] sm:text-[10px] tracking-[0.1em] sm:tracking-[0.2em] font-bold text-white uppercase px-3 sm:px-4 py-2 border transition-all ${showSequenceDropdown ? 'bg-white text-black border-white' : 'bg-black/20 border-white/10 hover:border-white/30'}`}
+              >
+                <span>Menu</span>
+                <span className={`text-[7px] sm:text-[8px] transition-transform duration-300 ${showSequenceDropdown ? 'rotate-180' : ''}`}>▼</span>
+              </button>
+
+              {showSequenceDropdown && (
+                <div className="absolute top-full right-0 mt-2 w-72 md:w-80 bg-zinc-950 border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.9)] z-[60] overflow-hidden flex flex-col max-h-[80vh]">
+                  <div className="p-5 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+                    <span className="text-[9px] tracking-[0.4em] uppercase text-zinc-500 font-black">Issue Navigation</span>
+                  </div>
+                  <div className="overflow-y-auto admin-scroll p-2 flex-1">
+                    {slides.map((slide, i) => (
+                      <button
+                        key={slide.id}
+                        onClick={() => handleStartAtSlide(i)}
+                        className={`w-full text-left p-4 flex gap-4 hover:bg-white/[0.05] transition-colors group ${currentIndex === i && appState === AppState.READING ? 'bg-white/[0.03]' : ''}`}
+                      >
+                        <span className={`text-[10px] font-black mt-1 transition-colors ${currentIndex === i && appState === AppState.READING ? 'text-white' : 'text-zinc-700 group-hover:text-zinc-400'}`}>
+                          {(i + 1).toString().padStart(2, '0')}
+                        </span>
+                        <div className="min-w-0">
+                          <h4 className={`text-[11px] font-bold uppercase tracking-wider truncate mb-1 ${currentIndex === i && appState === AppState.READING ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}`}>
+                            {slide.title}
+                          </h4>
+                          <p className="text-[9px] text-zinc-600 uppercase tracking-widest">{slide.category}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+           {appState === AppState.READING && (
+             <button 
+               onClick={() => setShowHud(!showHud)}
+               className={`hidden sm:block text-[10px] tracking-[0.3em] font-bold uppercase px-4 py-2 border border-white/10 transition-all bg-black/20 ${showHud ? 'text-zinc-400 hover:text-white' : 'text-white bg-white/10 border-white/40'}`}
+             >
+               {showHud ? 'Hide Info' : 'Show Info'}
+             </button>
+           )}
+           <button 
+             onClick={() => setAppState(AppState.ADMIN)}
+             className="text-[8px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] font-bold text-white uppercase px-3 sm:px-4 py-2 border border-white/10 hover:border-white transition-all bg-black/20 hover:bg-white/10"
+           >
+             Admin
+           </button>
+        </div>
+      </div>
 
       {/* Navigation Controls (Floating) */}
       {appState === AppState.READING && (

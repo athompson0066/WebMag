@@ -49,6 +49,21 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
     setIsLoading(true);
   }, [slide.id, slide.content, slide.url]);
 
+  useEffect(() => {
+    const titleFont = slide.titleFont || 'Playfair Display';
+    const bodyFont = slide.bodyFont || 'Inter';
+    const fontsToLoad = Array.from(new Set([titleFont, bodyFont, 'Playfair Display', 'Inter']));
+    const fontLink = `https://fonts.googleapis.com/css2?${fontsToLoad.map(f => `family=${f.replace(/ /g, '+')}:wght@100..900`).join('&')}&display=swap`;
+
+    const link = document.createElement('link');
+    link.href = fontLink;
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, [slide.titleFont, slide.bodyFont]);
+
   // Expose global playback and interaction functions for internal studio designs
   useEffect(() => {
     if (isActive) {
@@ -167,6 +182,30 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
     if (content.toLowerCase().includes('<!doctype') || content.toLowerCase().includes('<html')) {
         return content;
     }
+
+    const titleFont = slide.titleFont || 'Playfair Display';
+    const bodyFont = slide.bodyFont || 'Inter';
+    const activeFontColor = slide.fontColor || '#000000';
+    const bodyFontSize = slide.bodyFontSize || 16;
+    
+    const getFontWeight = (weight?: string | number) => {
+      if (typeof weight === 'number') return weight;
+      if (weight && !isNaN(Number(weight))) return Number(weight);
+      switch (weight) {
+        case 'light': return 300;
+        case 'bold': return 800;
+        default: return 500;
+      }
+    };
+
+    const titleWeight = getFontWeight(slide.titleFontWeight);
+    const bodyWeight = getFontWeight(slide.bodyFontWeight);
+    const titleStyle = slide.titleItalic ? 'italic' : 'normal';
+    const bodyStyle = slide.bodyItalic ? 'italic' : 'normal';
+
+    const fontsToLoad = Array.from(new Set([titleFont, bodyFont, 'Playfair Display', 'Inter']));
+    const fontLink = `https://fonts.googleapis.com/css2?${fontsToLoad.map(f => `family=${f.replace(/ /g, '+')}:wght@100..900`).join('&')}&display=swap`;
+
     // Otherwise, wrap it to ensure Tailwind and isolation works
     return `
       <!DOCTYPE html>
@@ -176,32 +215,57 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <link rel="preconnect" href="https://fonts.googleapis.com">
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-          <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@100..900&display=swap" rel="stylesheet">
+          <link href="${fontLink}" rel="stylesheet">
           <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
           <script>
             tailwind.config = {
               theme: {
                 extend: {
                   fontFamily: {
-                    serif: ['"Playfair Display"', 'serif'],
-                    sans: ['Inter', 'system-ui', 'sans-serif'],
+                    serif: ['"${titleFont}"', 'serif'],
+                    sans: ['"${bodyFont}"', 'system-ui', 'sans-serif'],
                   },
                 },
               },
             }
           </script>
           <style>
-            body { margin: 0; padding: 0; background: transparent; overflow-x: hidden; font-family: 'Inter', sans-serif; }
+            body { 
+              margin: 0; 
+              padding: 0; 
+              background: transparent; 
+              overflow-x: hidden; 
+              font-family: "${bodyFont}", sans-serif !important; 
+              font-weight: ${bodyWeight} !important; 
+              font-style: ${bodyStyle} !important;
+              font-size: ${bodyFontSize}px !important;
+              color: ${activeFontColor} !important;
+            }
+            h1, h2, h3, h4, h5, h6, .font-serif { 
+              font-family: "${titleFont}", serif !important;
+              font-weight: ${titleWeight} !important; 
+              font-style: ${titleStyle} !important;
+              line-height: 1.1;
+            }
+            p, div, span, li, a, .font-sans {
+              font-family: "${bodyFont}", sans-serif !important;
+              font-weight: ${bodyWeight} !important;
+              font-style: ${bodyStyle} !important;
+              font-size: ${bodyFontSize}px !important;
+            }
+            /* Ensure headers keep their relative sizes if they use Tailwind text-* classes */
+            h1, h2, h3, h4, h5, h6 { font-size: revert !important; }
+            
             *::-webkit-scrollbar { display: none; }
             * { -ms-overflow-style: none; scrollbar-width: none; }
             .drop-cap::first-letter {
               float: left;
-              font-size: 5rem;
-              line-height: 1;
-              padding-right: 0.75rem;
-              font-family: 'Playfair Display', serif;
-              color: #136dec;
-              font-weight: 800;
+              font-size: 5rem !important;
+              line-height: 1 !important;
+              padding-right: 0.75rem !important;
+              font-family: "${titleFont}", serif !important;
+              color: #136dec !important;
+              font-weight: 800 !important;
             }
           </style>
         </head>
@@ -254,57 +318,71 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
 
       {/* Magazine HUD / Overlay */}
       {showHud && (
-        <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 z-30 pointer-events-none">
-          <div className="max-w-2xl bg-white/95 backdrop-blur-2xl p-8 md:p-12 border-l-[8px] border-black shadow-[0_30px_100px_rgba(0,0,0,0.15)] transform translate-y-0 opacity-100 transition-all duration-700 ease-out pointer-events-auto relative animate-in fade-in slide-in-from-bottom-12">
+        <div className="absolute bottom-0 left-0 w-full p-4 sm:p-6 md:p-12 z-30 pointer-events-none">
+          <div className="max-w-2xl bg-white/95 backdrop-blur-2xl p-6 sm:p-8 md:p-12 border-l-[4px] sm:border-l-[8px] border-black shadow-[0_30px_100px_rgba(0,0,0,0.15)] transform translate-y-0 opacity-100 transition-all duration-700 ease-out pointer-events-auto relative animate-in fade-in slide-in-from-bottom-12">
             
             <button 
               onClick={onHideHud}
-              className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center text-black/20 hover:text-black hover:bg-black/5 transition-all rounded-full"
+              className="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-black/20 hover:text-black hover:bg-black/5 transition-all rounded-full"
               title="Hide all descriptions"
             >
-              <span className="text-2xl font-light">×</span>
+              <span className="text-xl sm:text-2xl font-light">×</span>
             </button>
 
-            <div className="flex items-center justify-between mb-6">
-               <div className="flex items-center gap-4">
-                 <div className="w-3 h-[2px]" style={{ backgroundColor: slide.accentColor || '#000' }}></div>
-                 <span className="text-[10px] font-black tracking-[0.4em] text-black/40 uppercase">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+               <div className="flex items-center gap-3 sm:gap-4">
+                 <div className="w-2 h-[2px] sm:w-3" style={{ backgroundColor: slide.accentColor || '#000' }}></div>
+                 <span className="text-[8px] sm:text-[10px] font-black tracking-[0.2em] sm:tracking-[0.4em] text-black/40 uppercase">
                   {slide.category} {slide.type === 'external' && slide.url ? `// ARCHIVE` : `// STUDIO EDITORIAL`}
                 </span>
                </div>
                {slide.price && (
-                 <span className="text-[10px] font-mono text-black/60 bg-black/5 px-3 py-1 rounded tracking-widest">{slide.price}</span>
+                 <span className="text-[8px] sm:text-[10px] font-mono text-black/60 bg-black/5 px-2 sm:px-3 py-1 rounded tracking-widest">{slide.price}</span>
                )}
             </div>
 
-            <h3 className="text-4xl md:text-5xl font-serif font-black text-black mb-6 leading-[0.9] tracking-tighter italic">
+            <h3 className="text-2xl sm:text-4xl md:text-5xl font-serif font-black text-black mb-4 sm:mb-6 leading-[0.9] tracking-tighter italic" style={{ 
+              fontFamily: `"${slide.titleFont || 'Playfair Display'}", serif`,
+              fontWeight: typeof slide.titleFontWeight === 'number' ? slide.titleFontWeight : (slide.titleFontWeight === 'light' ? 300 : slide.titleFontWeight === 'bold' ? 800 : 500),
+              fontStyle: slide.titleItalic ? 'italic' : 'normal'
+            }}>
               {slide.title}
             </h3>
 
             {slide.subtitle && (
-               <p className="text-sm text-black/80 font-bold uppercase tracking-[0.2em] mb-4 leading-tight">
+               <p className="text-sm text-black/80 font-bold uppercase tracking-[0.2em] mb-4 leading-tight" style={{ 
+                 fontFamily: `"${slide.bodyFont || 'Inter'}", sans-serif`,
+                 fontWeight: typeof slide.bodyFontWeight === 'number' ? slide.bodyFontWeight : (slide.bodyFontWeight === 'light' ? 300 : slide.bodyFontWeight === 'bold' ? 800 : 500),
+                 fontStyle: slide.bodyItalic ? 'italic' : 'normal',
+                 fontSize: slide.bodyFontSize ? `${slide.bodyFontSize}px` : undefined
+               }}>
                  {slide.subtitle}
                </p>
             )}
 
-            <p className="text-base md:text-lg text-black/70 leading-relaxed font-light italic mb-10 max-w-xl">
+            <p className="text-sm sm:text-base md:text-lg text-black/70 leading-relaxed font-light italic mb-8 sm:mb-10 max-w-xl" style={{ 
+              fontFamily: `"${slide.bodyFont || 'Inter'}", sans-serif`,
+              fontWeight: typeof slide.bodyFontWeight === 'number' ? slide.bodyFontWeight : (slide.bodyFontWeight === 'light' ? 300 : slide.bodyFontWeight === 'bold' ? 800 : 500),
+              fontStyle: slide.bodyItalic ? 'italic' : 'normal',
+              fontSize: slide.bodyFontSize ? `${slide.bodyFontSize}px` : undefined
+            }}>
               {slide.description}
             </p>
 
-            <div className="flex items-center gap-10">
+            <div className="flex items-center gap-6 sm:gap-10">
               {slide.type === 'external' ? (
                 <a 
                   href={slide.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="group/link flex items-center gap-4 text-[10px] uppercase tracking-[0.4em] font-black text-black pointer-events-auto"
+                  className="group/link flex items-center gap-3 sm:gap-4 text-[8px] sm:text-[10px] uppercase tracking-[0.2em] sm:tracking-[0.4em] font-black text-black pointer-events-auto"
                 >
                   <span className="border-b border-black/20 group-hover/link:border-black transition-all">Launch Observation</span>
                   <span className="transform group-hover/link:translate-x-2 transition-transform">→</span>
                 </a>
               ) : (
-                <div className="flex items-center gap-6">
-                  <div className="text-[9px] uppercase tracking-[0.5em] font-black text-black/20">Ref. Ed-Digital-01</div>
+                <div className="flex items-center gap-4 sm:gap-6">
+                  <div className="text-[8px] sm:text-[9px] uppercase tracking-[0.3em] sm:tracking-[0.5em] font-black text-black/20">Ref. Ed-Digital-01</div>
                   {slide.audioData && isPlayingPodcast && (
                     <div className="flex gap-1.5 items-end h-4">
                        <div className="w-1 bg-black/40 animate-pulse h-full"></div>

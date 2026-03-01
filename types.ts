@@ -9,6 +9,21 @@ export interface CoverConfig {
   backgroundImageUrl?: string;
   backgroundVideoUrl?: string;
   titleFontSize?: number;
+  titleFont?: string;
+  bodyFont?: string;
+  titleFontWeight?: string | number;
+  titleItalic?: boolean;
+  bodyFontWeight?: string | number;
+  bodyItalic?: boolean;
+  fontColor?: string;
+  sidebarTitleFont?: string;
+  sidebarBodyFont?: string;
+  sidebarTitleFontWeight?: string | number;
+  sidebarTitleItalic?: boolean;
+  sidebarBodyFontWeight?: string | number;
+  sidebarBodyItalic?: boolean;
+  sidebarFontColor?: string;
+  bodyFontSize?: number;
 }
 
 export interface ListicleItem {
@@ -42,6 +57,14 @@ export interface WebsiteSlide {
   listicleData?: ListicleData;
   webhookUrl?: string; // Integration endpoint for interactive widgets
   googleSheetSubmissionUrl?: string; // Target for lead generation form results
+  titleFont?: string;
+  bodyFont?: string;
+  titleFontWeight?: string | number;
+  titleItalic?: boolean;
+  bodyFontWeight?: string | number;
+  bodyItalic?: boolean;
+  fontColor?: string;
+  bodyFontSize?: number;
 }
 
 export interface MagazineIssue {
