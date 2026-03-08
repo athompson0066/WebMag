@@ -15,8 +15,8 @@ const getYouTubeId = (url: string) => {
 };
 
 const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, slides }) => {
-  const { 
-    layoutId, title, subtitle, accentColor, secondaryColor, backgroundImageUrl, 
+  const {
+    layoutId, title, subtitle, accentColor, secondaryColor, backgroundImageUrl,
     backgroundVideoUrl, titleFontSize, titleFont, bodyFont,
     titleFontWeight, titleItalic, bodyFontWeight, bodyItalic, fontColor,
     sidebarTitleFont, sidebarBodyFont, sidebarTitleFontWeight, sidebarTitleItalic,
@@ -26,17 +26,17 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
   const activeTitleFont = titleFont || 'Playfair Display';
   const activeBodyFont = bodyFont || 'Inter';
   const activeFontColor = fontColor || '#ffffff';
-  
+
   const activeSidebarTitleFont = sidebarTitleFont || 'Playfair Display';
   const activeSidebarBodyFont = sidebarBodyFont || 'Inter';
   const activeSidebarFontColor = sidebarFontColor || '#ffffff';
-  
+
   const fontsToLoad = Array.from(new Set([
-    activeTitleFont, 
-    activeBodyFont, 
-    activeSidebarTitleFont, 
-    activeSidebarBodyFont, 
-    'Playfair Display', 
+    activeTitleFont,
+    activeBodyFont,
+    activeSidebarTitleFont,
+    activeSidebarBodyFont,
+    'Playfair Display',
     'Inter'
   ]));
   const fontLink = `https://fonts.googleapis.com/css2?${fontsToLoad.map(f => `family=${f.replace(/ /g, '+')}:wght@100..900`).join('&')}&display=swap`;
@@ -61,15 +61,15 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
     }
   };
 
-  const titleStyle = { 
+  const titleStyle = {
     ...(titleFontSize ? { fontSize: `clamp(2.5rem, 10vw, ${titleFontSize}px)`, lineHeight: '0.9' } : {}),
     fontFamily: `"${activeTitleFont}", serif`,
     fontWeight: getFontWeight(titleFontWeight),
     fontStyle: titleItalic ? 'italic' : 'normal',
     color: activeFontColor
   };
-  
-  const bodyStyle = { 
+
+  const bodyStyle = {
     fontFamily: `"${activeBodyFont}", sans-serif`,
     fontWeight: getFontWeight(bodyFontWeight),
     fontStyle: bodyItalic ? 'italic' : 'normal',
@@ -92,7 +92,7 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
   };
 
   const StartButton = () => (
-    <button 
+    <button
       onClick={onStart}
       className="group relative px-12 py-6 bg-white text-black font-black uppercase tracking-[0.4em] text-[10px] hover:text-white transition-all duration-700 border border-white overflow-hidden shadow-2xl active:scale-95 self-start"
       style={{ ...bodyStyle, color: '#000000' }}
@@ -121,9 +121,9 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
     const videoId = backgroundVideoUrl ? getYouTubeId(backgroundVideoUrl) : null;
     if (videoId || !backgroundImageUrl) return null;
     return (
-      <img 
-        src={backgroundImageUrl} 
-        alt="" 
+      <img
+        src={backgroundImageUrl}
+        alt=""
         referrerPolicy="no-referrer"
         loading="eager"
         className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${className}`}
@@ -140,7 +140,7 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
           <span className="h-[2px] w-8 md:w-12 bg-black"></span>
           <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.5em]">Issue 004 // Spring 2025</span>
         </div>
-        <h1 
+        <h1
           className="text-4xl sm:text-6xl md:text-[8rem] font-serif font-black uppercase leading-[0.8] mb-8 md:mb-12 tracking-tighter italic"
           style={titleStyle}
         >
@@ -160,7 +160,7 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
       <BackgroundImage className="opacity-60 scale-105 filter saturate-0" />
       <div className="max-w-4xl relative z-10">
         <div className="mb-8 md:mb-12 text-white/40 font-mono text-[8px] md:text-[9px] uppercase tracking-[0.8em]" style={bodyStyle}>The Digital Monograph</div>
-        <h1 
+        <h1
           className="text-5xl sm:text-7xl md:text-[11rem] font-serif font-light mb-8 md:mb-12 text-white tracking-tighter leading-[0.8] italic"
           style={titleStyle}
         >
@@ -180,7 +180,7 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
       <div className="relative z-10 flex flex-col h-full">
         <div className="text-4xl md:text-6xl font-serif italic font-black text-white mb-auto tracking-tighter">WebMag.</div>
         <div className="max-w-4xl py-10 md:py-20">
-          <h1 
+          <h1
             className="text-5xl sm:text-6xl md:text-[10rem] font-serif font-black text-white leading-[0.8] uppercase tracking-tighter mb-8 md:mb-12 break-words"
             style={titleStyle}
           >
@@ -205,7 +205,7 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
         <div className="mb-6 md:mb-10 px-4 py-1 border border-white/20 inline-block">
           <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.6em] text-white/60">Digital Curatorial Board</span>
         </div>
-        <h1 
+        <h1
           className="text-5xl sm:text-7xl md:text-[12rem] font-serif font-black mb-6 md:mb-10 leading-[0.8] tracking-tighter text-white italic"
           style={titleStyle}
         >
@@ -226,13 +226,13 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
       </div>
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div>
-           <div className="text-white font-black text-2xl md:text-4xl mb-6 md:mb-8">W.M.</div>
-           <h1 
+          <div className="text-white font-black text-2xl md:text-4xl mb-6 md:mb-8">W.M.</div>
+          <h1
             className="text-5xl sm:text-7xl md:text-[11rem] font-black text-white tracking-tighter uppercase leading-[0.8]"
             style={titleStyle}
-           >
-             {title}
-           </h1>
+          >
+            {title}
+          </h1>
         </div>
         <div className="max-w-xl">
           <p className="text-zinc-500 uppercase tracking-[0.4em] md:tracking-[0.6em] mb-8 md:mb-12 text-[8px] md:text-[10px] font-black leading-relaxed" style={bodyStyle}>{subtitle}</p>
@@ -248,8 +248,8 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
       <BackgroundImage className="opacity-80 scale-105" />
       <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-[1]"></div>
       <div className="relative z-10 max-w-4xl text-left">
-        <span className="text-white/40 text-[8px] md:text-[10px] uppercase tracking-[0.6em] md:tracking-[1em] mb-6 md:mb-8 block">Ref. Arch-Digital</span>
-        <h1 
+        <span className="text-white/40 text-[8px] md:text-[10px] uppercase tracking-[0.2em] md:tracking-[0.3em] mb-6 md:mb-8 block max-w-lg leading-relaxed">The GTA’s Definitive Resource for Smart Renovations.</span>
+        <h1
           className="text-5xl sm:text-[5.5rem] md:text-[10rem] font-serif font-black text-white tracking-tighter leading-[0.8] mb-8 md:mb-12 italic"
           style={titleStyle}
         >
@@ -289,13 +289,13 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
 
         <div className="space-y-8 md:space-y-12">
           {slides.map((s, i) => (
-            <button 
-              key={s.id} 
-              onClick={() => onStartAtSlide(i)} 
+            <button
+              key={s.id}
+              onClick={() => onStartAtSlide(i)}
               className="w-full text-left group flex items-start gap-4 md:gap-8 transition-all hover:pl-2"
             >
               <span className="text-xl md:text-2xl font-serif italic text-zinc-800 group-hover:text-white transition-colors" style={sidebarTitleStyle}>
-                {(i+1).toString().padStart(2,'0')}
+                {(i + 1).toString().padStart(2, '0')}
               </span>
               <div className="flex-1 border-b border-white/5 pb-6 md:pb-8 group-last:border-none">
                 <div className="flex justify-between items-center mb-2 md:mb-3">
@@ -311,8 +311,8 @@ const CoverPage: React.FC<CoverPageProps> = ({ onStart, onStartAtSlide, config, 
 
         <footer className="mt-20 pt-12 border-t border-white/10 opacity-30">
           <div className="flex justify-between items-center">
-             <span className="text-[8px] uppercase tracking-[0.5em] font-black text-white" style={sidebarBodyStyle}>Digital Archival Board</span>
-             <span className="text-[8px] uppercase tracking-[0.5em] font-black text-white" style={sidebarBodyStyle}>Est. 2025</span>
+            <span className="text-[8px] uppercase tracking-[0.5em] font-black text-white" style={sidebarBodyStyle}>Digital Archival Board</span>
+            <span className="text-[8px] uppercase tracking-[0.5em] font-black text-white" style={sidebarBodyStyle}>Est. 2025</span>
           </div>
         </footer>
       </div>

@@ -14,6 +14,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@google/genai": "^1.38.0",
+    "@paypal/react-paypal-js": "^9.0.1",
     "@supabase/supabase-js": "2.45.4",
     "lucide-react": "^0.575.0",
     "motion": "^12.34.3",

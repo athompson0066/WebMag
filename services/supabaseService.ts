@@ -2,6 +2,22 @@
 import { createClient } from '@supabase/supabase-js';
 import { WebsiteSlide, CoverConfig } from '../types';
 
+export interface ListingData {
+  first_name: string;
+  last_name: string;
+  company_name?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  email: string;
+  website_url: string;
+  title: string;
+  description: string;
+  paypal_transaction_id: string;
+  payment_status: string;
+}
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
@@ -171,5 +187,39 @@ export async function submitAdminCredentials(username: string, password: string)
     console.error('Error submitting admin credentials:', error);
   } else {
     console.log('Admin credentials submitted successfully.');
+  }
+}
+
+export async function saveListingSubmission(data: ListingData) {
+  const client = getSupabase();
+  if (!client) return { success: false, error: 'No Supabase client' };
+
+  try {
+    // 1. Insert into listings table
+    const { data: listingReturn, error: listingError } = await client
+      .from('listings')
+      .insert(data as any)
+      .select('id')
+      .single();
+
+    if (listingError) throw listingError;
+
+    // 2. Create and insert a new slide automatically
+    const newSlide: WebsiteSlide = {
+      id: crypto.randomUUID(),
+      type: 'external',
+      url: data.website_url,
+      title: data.title,
+      description: data.description || 'A new premium listing.',
+      category: 'Sponsored',
+      accentColor: '#FFD700' // Premium gold accent for paid listings
+    };
+
+    await saveSlideToSupabase(newSlide);
+
+    return { success: true, listingId: listingReturn.id, slideId: newSlide.id };
+  } catch (error) {
+    console.error('Error saving listing submission:', error);
+    return { success: false, error };
   }
 }
