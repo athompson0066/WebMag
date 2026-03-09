@@ -255,7 +255,7 @@ const App: React.FC = () => {
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowSequenceDropdown(!showSequenceDropdown)}
-              className={`flex items-center gap-2 sm:gap-3 text-[8px] sm:text-[10px] tracking-[0.1em] sm:tracking-[0.2em] font-bold text-white uppercase px-3 sm:px-4 py-2 border transition-all ${showSequenceDropdown ? 'bg-white text-black border-white' : 'bg-black/20 border-white/10 hover:border-white/30'}`}
+              className={`flex items-center gap-2 sm:gap-3 text-[8px] sm:text-[10px] tracking-[0.1em] sm:tracking-[0.2em] font-bold uppercase px-3 sm:px-4 py-2 border transition-all ${showSequenceDropdown ? 'bg-white text-black border-white' : 'text-white bg-black/20 border-white/10 hover:border-white/30'}`}
             >
               <span>Menu</span>
               <span className={`text-[7px] sm:text-[8px] transition-transform duration-300 ${showSequenceDropdown ? 'rotate-180' : ''}`}>▼</span>
