@@ -309,22 +309,26 @@ const App: React.FC = () => {
       {/* Navigation Controls (Floating) */}
       {appState === AppState.READING && (
         <>
-          <button
-            onClick={goToPrev}
-            disabled={isAtStart}
-            className={`fixed left-6 top-1/2 -translate-y-1/2 z-[55] w-14 h-14 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white/50 hover:text-white hover:border-white/40 transition-all ${isAtStart ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-            title="Previous Page"
-          >
-            <span className="text-2xl font-light">‹</span>
-          </button>
-          <button
-            onClick={goToNext}
-            disabled={isAtEnd}
-            className={`fixed right-6 top-1/2 -translate-y-1/2 z-[55] w-14 h-14 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white/50 hover:text-white hover:border-white/40 transition-all ${isAtEnd ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-            title="Next Page"
-          >
-            <span className="text-2xl font-light">›</span>
-          </button>
+          <div className={`fixed left-0 top-1/2 -translate-y-1/2 h-64 w-24 z-[55] hidden md:flex items-center justify-start group pl-6 ${isAtStart ? 'pointer-events-none' : ''}`}>
+            <button
+              onClick={goToPrev}
+              disabled={isAtStart}
+              className={`w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/70 hover:text-white hover:bg-black/60 transition-all duration-300 opacity-0 group-hover:opacity-100 ${isAtStart ? 'hidden' : ''}`}
+              title="Previous Page"
+            >
+              <span className="text-2xl font-light">‹</span>
+            </button>
+          </div>
+          <div className={`fixed right-0 top-1/2 -translate-y-1/2 h-64 w-24 z-[55] hidden md:flex items-center justify-end group pr-6 ${isAtEnd ? 'pointer-events-none' : ''}`}>
+            <button
+              onClick={goToNext}
+              disabled={isAtEnd}
+              className={`w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/70 hover:text-white hover:bg-black/60 transition-all duration-300 opacity-0 group-hover:opacity-100 ${isAtEnd ? 'hidden' : ''}`}
+              title="Next Page"
+            >
+              <span className="text-2xl font-light">›</span>
+            </button>
+          </div>
         </>
       )}
 
