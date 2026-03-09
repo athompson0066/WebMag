@@ -14,6 +14,7 @@ import CoverPage from './components/CoverPage';
 import Slide from './components/Slide';
 import AdminPanel from './components/AdminPanel';
 import SalesPage from './components/SalesPage';
+import { Analytics } from '@vercel/analytics/react';
 
 const DEFAULT_COVER: CoverConfig = {
   layoutId: 'gradient',
@@ -386,6 +387,7 @@ const App: React.FC = () => {
           />
         </div>
       )}
+      <Analytics />
     </div>
   );
 };
