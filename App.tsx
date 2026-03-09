@@ -52,6 +52,7 @@ const App: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showHud, setShowHud] = useState(true);
   const [showSequenceDropdown, setShowSequenceDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -266,24 +267,41 @@ const App: React.FC = () => {
                 <div className="p-5 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
                   <span className="text-[9px] tracking-[0.4em] uppercase text-zinc-500 font-black">Issue Navigation</span>
                 </div>
+                <div className="p-3 border-b border-white/5 bg-black/20">
+                  <input
+                    type="text"
+                    placeholder="Search slides..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-[10px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-colors"
+                  />
+                </div>
                 <div className="overflow-y-auto no-scrollbar p-2 flex-1">
-                  {slides.map((slide, i) => (
-                    <button
-                      key={slide.id}
-                      onClick={() => handleStartAtSlide(i)}
-                      className={`w-full text-left p-4 flex gap-4 hover:bg-white/[0.05] transition-colors group ${currentIndex === i && appState === AppState.READING ? 'bg-white/[0.03]' : ''}`}
-                    >
-                      <span className={`text-[10px] font-black mt-1 transition-colors ${currentIndex === i && appState === AppState.READING ? 'text-white' : 'text-zinc-700 group-hover:text-zinc-400'}`}>
-                        {(i + 1).toString().padStart(2, '0')}
-                      </span>
-                      <div className="min-w-0">
-                        <h4 className={`text-[11px] font-bold uppercase tracking-wider truncate mb-1 ${currentIndex === i && appState === AppState.READING ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}`}>
-                          {slide.title}
-                        </h4>
-                        <p className="text-[9px] text-zinc-600 uppercase tracking-widest">{slide.category}</p>
-                      </div>
-                    </button>
-                  ))}
+                  {slides.filter(slide =>
+                    slide.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (slide.description && slide.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                    (slide.category && slide.category.toLowerCase().includes(searchQuery.toLowerCase()))
+                  ).map((slide) => {
+                    const i = slides.findIndex(s => s.id === slide.id);
+                    return (
+                      <button
+                        key={slide.id}
+                        onClick={() => handleStartAtSlide(i)}
+                        className={`w-full text-left p-4 flex gap-4 hover:bg-white/[0.05] transition-colors group ${currentIndex === i && appState === AppState.READING ? 'bg-white/[0.03]' : ''}`}
+                      >
+                        <span className={`text-[10px] font-black mt-1 transition-colors ${currentIndex === i && appState === AppState.READING ? 'text-white' : 'text-zinc-700 group-hover:text-zinc-400'}`}>
+                          {(i + 1).toString().padStart(2, '0')}
+                        </span>
+                        <div className="min-w-0">
+                          <h4 className={`text-[11px] font-bold uppercase tracking-wider truncate mb-1 ${currentIndex === i && appState === AppState.READING ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}`}>
+                            {slide.title}
+                          </h4>
+                          <p className="text-[9px] text-zinc-600 uppercase tracking-widest">{slide.category}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -307,104 +325,114 @@ const App: React.FC = () => {
       </div>
 
       {/* Navigation Controls (Floating) */}
-      {appState === AppState.READING && (
-        <>
-          <div className={`fixed left-0 top-1/2 -translate-y-1/2 h-64 w-24 z-[55] hidden md:flex items-center justify-start group pl-6 ${isAtStart ? 'pointer-events-none' : ''}`}>
-            <button
-              onClick={goToPrev}
-              disabled={isAtStart}
-              className={`w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/70 hover:text-white hover:bg-black/60 transition-all duration-300 opacity-0 group-hover:opacity-100 ${isAtStart ? 'hidden' : ''}`}
-              title="Previous Page"
-            >
-              <span className="text-2xl font-light">‹</span>
-            </button>
-          </div>
-          <div className={`fixed right-0 top-1/2 -translate-y-1/2 h-64 w-24 z-[55] hidden md:flex items-center justify-end group pr-6 ${isAtEnd ? 'pointer-events-none' : ''}`}>
-            <button
-              onClick={goToNext}
-              disabled={isAtEnd}
-              className={`w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/70 hover:text-white hover:bg-black/60 transition-all duration-300 opacity-0 group-hover:opacity-100 ${isAtEnd ? 'hidden' : ''}`}
-              title="Next Page"
-            >
-              <span className="text-2xl font-light">›</span>
-            </button>
-          </div>
-        </>
-      )}
+      {
+        appState === AppState.READING && (
+          <>
+            <div className={`fixed left-0 top-1/2 -translate-y-1/2 h-64 w-24 z-[55] hidden md:flex items-center justify-start group pl-6 ${isAtStart ? 'pointer-events-none' : ''}`}>
+              <button
+                onClick={goToPrev}
+                disabled={isAtStart}
+                className={`w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/70 hover:text-white hover:bg-black/60 transition-all duration-300 opacity-0 group-hover:opacity-100 ${isAtStart ? 'hidden' : ''}`}
+                title="Previous Page"
+              >
+                <span className="text-2xl font-light">‹</span>
+              </button>
+            </div>
+            <div className={`fixed right-0 top-1/2 -translate-y-1/2 h-64 w-24 z-[55] hidden md:flex items-center justify-end group pr-6 ${isAtEnd ? 'pointer-events-none' : ''}`}>
+              <button
+                onClick={goToNext}
+                disabled={isAtEnd}
+                className={`w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/70 hover:text-white hover:bg-black/60 transition-all duration-300 opacity-0 group-hover:opacity-100 ${isAtEnd ? 'hidden' : ''}`}
+                title="Next Page"
+              >
+                <span className="text-2xl font-light">›</span>
+              </button>
+            </div>
+          </>
+        )
+      }
 
       {/* View State Rendering */}
-      {appState === AppState.ADMIN && (
-        <AdminPanel
-          slides={slides}
-          coverConfig={coverConfig}
-          onAddSlide={addManualSlide}
-          onUpdateSlide={updateManualSlide}
-          onRemoveSlide={removeSlide}
-          onUpdateCover={handleUpdateCover}
-          onCurate={onCurate}
-          onReorderSlides={handleReorderSlides}
-          onFullIssueGenerated={handleFullIssueGenerated}
-          onClose={() => setAppState(AppState.READING)}
-        />
-      )}
+      {
+        appState === AppState.ADMIN && (
+          <AdminPanel
+            slides={slides}
+            coverConfig={coverConfig}
+            onAddSlide={addManualSlide}
+            onUpdateSlide={updateManualSlide}
+            onRemoveSlide={removeSlide}
+            onUpdateCover={handleUpdateCover}
+            onCurate={onCurate}
+            onReorderSlides={handleReorderSlides}
+            onFullIssueGenerated={handleFullIssueGenerated}
+            onClose={() => setAppState(AppState.READING)}
+          />
+        )
+      }
 
-      {appState === AppState.SALES && (
-        <SalesPage
-          onClose={() => setAppState(AppState.READING)}
-          accentColor={coverConfig.accentColor}
-        />
-      )}
+      {
+        appState === AppState.SALES && (
+          <SalesPage
+            onClose={() => setAppState(AppState.READING)}
+            accentColor={coverConfig.accentColor}
+          />
+        )
+      }
 
-      {appState === AppState.COVER ? (
-        <CoverPage
-          onStart={handleStart}
-          onStartAtSlide={handleStartAtSlide}
-          config={coverConfig}
-          slides={slides}
-        />
-      ) : (
-        <div
-          ref={scrollContainerRef}
-          onScroll={handleScroll}
-          className={`w-full h-full flex overflow-x-scroll snap-x snap-mandatory no-scrollbar scroll-smooth transition-opacity duration-700 ${appState === AppState.SALES ? 'opacity-20 pointer-events-none' : 'opacity-100'}`}
-        >
-          {slides.map((slide, index) => (
-            <Slide
-              key={`${slide.id}-${index}`}
-              slide={slide}
-              isCurrent={currentIndex === index}
-              isNear={Math.abs(currentIndex - index) <= 1}
-              showHud={showHud}
-              onHideHud={() => setShowHud(false)}
-            />
-          ))}
+      {
+        appState === AppState.COVER ? (
+          <CoverPage
+            onStart={handleStart}
+            onStartAtSlide={handleStartAtSlide}
+            config={coverConfig}
+            slides={slides}
+          />
+        ) : (
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className={`w-full h-full flex overflow-x-scroll snap-x snap-mandatory no-scrollbar scroll-smooth transition-opacity duration-700 ${appState === AppState.SALES ? 'opacity-20 pointer-events-none' : 'opacity-100'}`}
+          >
+            {slides.map((slide, index) => (
+              <Slide
+                key={`${slide.id}-${index}`}
+                slide={slide}
+                isCurrent={currentIndex === index}
+                isNear={Math.abs(currentIndex - index) <= 1}
+                showHud={showHud}
+                onHideHud={() => setShowHud(false)}
+              />
+            ))}
 
-          <div className="w-screen h-screen flex-shrink-0 snap-start flex flex-col items-center justify-center bg-zinc-950 text-white p-12 text-center pt-24">
-            <div className="max-w-md animate-slide-up">
-              <div className="w-16 h-16 rounded-full border border-white/20 mb-10 flex items-center justify-center text-xs font-serif italic mx-auto">Fin</div>
-              <h2 className="text-5xl font-serif font-black mb-6 tracking-tighter">Issue Complete.</h2>
-              <div className="flex flex-col gap-4">
-                <button
-                  onClick={() => setAppState(AppState.ADMIN)}
-                  className="bg-white text-black px-12 py-6 font-black tracking-[0.3em] uppercase text-[10px] hover:bg-zinc-200 transition-colors shadow-2xl"
-                >
-                  Open Designer Studio
-                </button>
+            <div className="w-screen h-screen flex-shrink-0 snap-start flex flex-col items-center justify-center bg-zinc-950 text-white p-12 text-center pt-24">
+              <div className="max-w-md animate-slide-up">
+                <div className="w-16 h-16 rounded-full border border-white/20 mb-10 flex items-center justify-center text-xs font-serif italic mx-auto">Fin</div>
+                <h2 className="text-5xl font-serif font-black mb-6 tracking-tighter">Issue Complete.</h2>
+                <div className="flex flex-col gap-4">
+                  <button
+                    onClick={() => setAppState(AppState.ADMIN)}
+                    className="bg-white text-black px-12 py-6 font-black tracking-[0.3em] uppercase text-[10px] hover:bg-zinc-200 transition-colors shadow-2xl"
+                  >
+                    Open Designer Studio
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {appState === AppState.READING && (
-        <div className="fixed bottom-0 left-0 w-full h-1 bg-white/5 z-50">
-          <div
-            className="h-full bg-white/40 transition-all duration-300 ease-out"
-            style={{ width: `${((currentIndex + 1) / (slides.length + 1)) * 100}%` }}
-          />
-        </div>
-      )}
-    </div>
+      {
+        appState === AppState.READING && (
+          <div className="fixed bottom-0 left-0 w-full h-1 bg-white/5 z-50">
+            <div
+              className="h-full bg-white/40 transition-all duration-300 ease-out"
+              style={{ width: `${((currentIndex + 1) / (slides.length + 1)) * 100}%` }}
+            />
+          </div>
+        )
+      }
+    </div >
   );
 };
 
