@@ -262,11 +262,11 @@ const App: React.FC = () => {
             </button>
 
             {showSequenceDropdown && (
-              <div className="absolute top-full right-0 mt-2 w-72 md:w-80 bg-zinc-950 border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.9)] z-[60] overflow-hidden flex flex-col max-h-[80vh]">
+              <div className="absolute top-full right-0 mt-2 w-72 md:w-80 bg-zinc-950 border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.9)] z-[60] overflow-hidden flex flex-col max-h-64">
                 <div className="p-5 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
                   <span className="text-[9px] tracking-[0.4em] uppercase text-zinc-500 font-black">Issue Navigation</span>
                 </div>
-                <div className="overflow-y-auto admin-scroll p-2 flex-1">
+                <div className="overflow-y-auto no-scrollbar p-2 flex-1">
                   {slides.map((slide, i) => (
                     <button
                       key={slide.id}
