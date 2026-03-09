@@ -87,15 +87,15 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
         try {
           const rawBytes = decodeBase64(slide.audioData!);
           const audioBuffer = await decodeAudioData(rawBytes, audioContextRef.current, 24000, 1);
-          
+
           const source = audioContextRef.current.createBufferSource();
           source.buffer = audioBuffer;
           source.connect(audioContextRef.current.destination);
-          
+
           source.onended = () => {
             setIsPlayingPodcast(false);
           };
-          
+
           source.start();
           sourceNodeRef.current = source;
           setIsPlayingPodcast(true);
@@ -108,7 +108,7 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
       // Safety Fallbacks for AI-generated interaction functions
       const trackEnrollment = (lessonId: string, action: string, targetUrl?: string) => {
         console.log(`%c[Course Interaction] %c${action.toUpperCase()}%c: ${lessonId}`, "color: #6366f1; font-weight: bold", "color: #10b981; font-weight: bold", "color: #000");
-        
+
         const performTracking = async () => {
           if (slide.webhookUrl) {
             try {
@@ -121,7 +121,7 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
               console.error("Webhook ping failed:", err);
             }
           }
-          
+
           // If a target URL is provided and it's an enrollment action, navigate
           if (targetUrl && (action.toLowerCase().includes('enroll') || action.toLowerCase().includes('start'))) {
             window.open(targetUrl, '_blank');
@@ -166,7 +166,7 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
         if (sourceNodeRef.current) {
           try {
             sourceNodeRef.current.stop();
-          } catch(e) {}
+          } catch (e) { }
         }
         setIsPlayingPodcast(false);
         delete (window as any).playMagazineAudio;
@@ -180,14 +180,14 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
   const wrapContentInFrame = (content: string) => {
     // If it's already a full HTML doc, just return it
     if (content.toLowerCase().includes('<!doctype') || content.toLowerCase().includes('<html')) {
-        return content;
+      return content;
     }
 
     const titleFont = slide.titleFont || 'Playfair Display';
     const bodyFont = slide.bodyFont || 'Inter';
     const activeFontColor = slide.fontColor || '#000000';
     const bodyFontSize = slide.bodyFontSize || 16;
-    
+
     const getFontWeight = (weight?: string | number) => {
       if (typeof weight === 'number') return weight;
       if (weight && !isNaN(Number(weight))) return Number(weight);
@@ -301,27 +301,25 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
 
       {/* Frame Wrapper */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pt-[64px]">
-        {isActive && (
-          <div className="w-full h-full overflow-hidden">
-            <iframe
-              srcDoc={slide.type === 'internal' ? wrapContentInFrame(slide.content || '') : undefined}
-              src={slide.type === 'external' ? slide.url : undefined}
-              title={slide.title}
-              style={{ width: '100%', height: '100%', border: 'none' }}
-              className={`transition-opacity duration-1000 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-              onLoad={() => setIsLoading(false)}
-              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-            />
-          </div>
-        )}
+        <div className="w-full h-full overflow-hidden">
+          <iframe
+            srcDoc={slide.type === 'internal' ? wrapContentInFrame(slide.content || '') : undefined}
+            src={slide.type === 'external' ? slide.url : undefined}
+            title={slide.title}
+            style={{ width: '100%', height: '100%', border: 'none' }}
+            className={`transition-opacity duration-1000 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+            onLoad={() => setIsLoading(false)}
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+          />
+        </div>
       </div>
 
       {/* Magazine HUD / Overlay */}
       {showHud && (
         <div className="absolute bottom-0 left-0 w-full p-4 sm:p-6 md:p-12 z-30 pointer-events-none">
           <div className="max-w-2xl bg-white/95 backdrop-blur-2xl p-6 sm:p-8 md:p-12 border-l-[4px] sm:border-l-[8px] border-black shadow-[0_30px_100px_rgba(0,0,0,0.15)] transform translate-y-0 opacity-100 transition-all duration-700 ease-out pointer-events-auto relative animate-in fade-in slide-in-from-bottom-12">
-            
-            <button 
+
+            <button
               onClick={onHideHud}
               className="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-black/20 hover:text-black hover:bg-black/5 transition-all rounded-full"
               title="Hide all descriptions"
@@ -330,18 +328,18 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
             </button>
 
             <div className="flex items-center justify-between mb-4 sm:mb-6">
-               <div className="flex items-center gap-3 sm:gap-4">
-                 <div className="w-2 h-[2px] sm:w-3" style={{ backgroundColor: slide.accentColor || '#000' }}></div>
-                 <span className="text-[8px] sm:text-[10px] font-black tracking-[0.2em] sm:tracking-[0.4em] text-black/40 uppercase">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-2 h-[2px] sm:w-3" style={{ backgroundColor: slide.accentColor || '#000' }}></div>
+                <span className="text-[8px] sm:text-[10px] font-black tracking-[0.2em] sm:tracking-[0.4em] text-black/40 uppercase">
                   {slide.category} {slide.type === 'external' && slide.url ? `// ARCHIVE` : `// STUDIO EDITORIAL`}
                 </span>
-               </div>
-               {slide.price && (
-                 <span className="text-[8px] sm:text-[10px] font-mono text-black/60 bg-black/5 px-2 sm:px-3 py-1 rounded tracking-widest">{slide.price}</span>
-               )}
+              </div>
+              {slide.price && (
+                <span className="text-[8px] sm:text-[10px] font-mono text-black/60 bg-black/5 px-2 sm:px-3 py-1 rounded tracking-widest">{slide.price}</span>
+              )}
             </div>
 
-            <h3 className="text-2xl sm:text-4xl md:text-5xl font-serif font-black text-black mb-4 sm:mb-6 leading-[0.9] tracking-tighter italic" style={{ 
+            <h3 className="text-2xl sm:text-4xl md:text-5xl font-serif font-black text-black mb-4 sm:mb-6 leading-[0.9] tracking-tighter italic" style={{
               fontFamily: `"${slide.titleFont || 'Playfair Display'}", serif`,
               fontWeight: typeof slide.titleFontWeight === 'number' ? slide.titleFontWeight : (slide.titleFontWeight === 'light' ? 300 : slide.titleFontWeight === 'bold' ? 800 : 500),
               fontStyle: slide.titleItalic ? 'italic' : 'normal'
@@ -350,17 +348,17 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
             </h3>
 
             {slide.subtitle && (
-               <p className="text-sm text-black/80 font-bold uppercase tracking-[0.2em] mb-4 leading-tight" style={{ 
-                 fontFamily: `"${slide.bodyFont || 'Inter'}", sans-serif`,
-                 fontWeight: typeof slide.bodyFontWeight === 'number' ? slide.bodyFontWeight : (slide.bodyFontWeight === 'light' ? 300 : slide.bodyFontWeight === 'bold' ? 800 : 500),
-                 fontStyle: slide.bodyItalic ? 'italic' : 'normal',
-                 fontSize: slide.bodyFontSize ? `${slide.bodyFontSize}px` : undefined
-               }}>
-                 {slide.subtitle}
-               </p>
+              <p className="text-sm text-black/80 font-bold uppercase tracking-[0.2em] mb-4 leading-tight" style={{
+                fontFamily: `"${slide.bodyFont || 'Inter'}", sans-serif`,
+                fontWeight: typeof slide.bodyFontWeight === 'number' ? slide.bodyFontWeight : (slide.bodyFontWeight === 'light' ? 300 : slide.bodyFontWeight === 'bold' ? 800 : 500),
+                fontStyle: slide.bodyItalic ? 'italic' : 'normal',
+                fontSize: slide.bodyFontSize ? `${slide.bodyFontSize}px` : undefined
+              }}>
+                {slide.subtitle}
+              </p>
             )}
 
-            <p className="text-sm sm:text-base md:text-lg text-black/70 leading-relaxed font-light italic mb-8 sm:mb-10 max-w-xl" style={{ 
+            <p className="text-sm sm:text-base md:text-lg text-black/70 leading-relaxed font-light italic mb-8 sm:mb-10 max-w-xl" style={{
               fontFamily: `"${slide.bodyFont || 'Inter'}", sans-serif`,
               fontWeight: typeof slide.bodyFontWeight === 'number' ? slide.bodyFontWeight : (slide.bodyFontWeight === 'light' ? 300 : slide.bodyFontWeight === 'bold' ? 800 : 500),
               fontStyle: slide.bodyItalic ? 'italic' : 'normal',
@@ -371,9 +369,9 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
 
             <div className="flex items-center gap-6 sm:gap-10">
               {slide.type === 'external' ? (
-                <a 
-                  href={slide.url} 
-                  target="_blank" 
+                <a
+                  href={slide.url}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="group/link flex items-center gap-3 sm:gap-4 text-[8px] sm:text-[10px] uppercase tracking-[0.2em] sm:tracking-[0.4em] font-black text-black pointer-events-auto"
                 >
@@ -385,9 +383,9 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
                   <div className="text-[8px] sm:text-[9px] uppercase tracking-[0.3em] sm:tracking-[0.5em] font-black text-black/20">Ref. Ed-Digital-01</div>
                   {slide.audioData && isPlayingPodcast && (
                     <div className="flex gap-1.5 items-end h-4">
-                       <div className="w-1 bg-black/40 animate-pulse h-full"></div>
-                       <div className="w-1 bg-black/40 animate-pulse h-3/4 delay-75"></div>
-                       <div className="w-1 bg-black/40 animate-pulse h-1/2 delay-150"></div>
+                      <div className="w-1 bg-black/40 animate-pulse h-full"></div>
+                      <div className="w-1 bg-black/40 animate-pulse h-3/4 delay-75"></div>
+                      <div className="w-1 bg-black/40 animate-pulse h-1/2 delay-150"></div>
                     </div>
                   )}
                 </div>
