@@ -368,7 +368,8 @@ const App: React.FC = () => {
             <Slide
               key={`${slide.id}-${index}`}
               slide={slide}
-              isActive={Math.abs(currentIndex - index) <= 1}
+              isCurrent={currentIndex === index}
+              isNear={Math.abs(currentIndex - index) <= 1}
               showHud={showHud}
               onHideHud={() => setShowHud(false)}
             />

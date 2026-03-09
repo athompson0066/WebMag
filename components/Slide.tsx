@@ -4,7 +4,8 @@ import { WebsiteSlide } from '../types';
 
 interface SlideProps {
   slide: WebsiteSlide;
-  isActive: boolean;
+  isCurrent: boolean;
+  isNear: boolean;
   showHud: boolean;
   onHideHud: () => void;
 }
@@ -39,15 +40,15 @@ async function decodeAudioData(
   return buffer;
 }
 
-const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) => {
+const Slide: React.FC<SlideProps> = ({ slide, isCurrent, isNear, showHud, onHideHud }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlayingPodcast, setIsPlayingPodcast] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
 
   useEffect(() => {
-    setIsLoading(true);
-  }, [slide.id, slide.content, slide.url]);
+    if (!isNear) setIsLoading(true);
+  }, [slide.id, slide.content, slide.url, isNear]);
 
   useEffect(() => {
     const titleFont = slide.titleFont || 'Playfair Display';
@@ -66,7 +67,7 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
 
   // Expose global playback and interaction functions for internal studio designs
   useEffect(() => {
-    if (isActive) {
+    if (isCurrent) {
       // Audio Playback logic
       const playAudio = async () => {
         if (!slide.audioData) return;
@@ -162,7 +163,7 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
     }
 
     return () => {
-      if (!isActive) {
+      if (!isCurrent) {
         if (sourceNodeRef.current) {
           try {
             sourceNodeRef.current.stop();
@@ -175,7 +176,7 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
         delete (window as any).sendMessage;
       }
     };
-  }, [isActive, slide.audioData, isPlayingPodcast, slide.webhookUrl, slide.id]);
+  }, [isCurrent, slide.audioData, isPlayingPodcast, slide.webhookUrl, slide.id]);
 
   const wrapContentInFrame = (content: string) => {
     // If it's already a full HTML doc, just return it
@@ -302,15 +303,17 @@ const Slide: React.FC<SlideProps> = ({ slide, isActive, showHud, onHideHud }) =>
       {/* Frame Wrapper */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pt-[64px]">
         <div className="w-full h-full overflow-hidden">
-          <iframe
-            srcDoc={slide.type === 'internal' ? wrapContentInFrame(slide.content || '') : undefined}
-            src={slide.type === 'external' ? slide.url : undefined}
-            title={slide.title}
-            style={{ width: '100%', height: '100%', border: 'none' }}
-            className={`transition-opacity duration-1000 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-            onLoad={() => setIsLoading(false)}
-            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-          />
+          {isNear && (
+            <iframe
+              srcDoc={slide.type === 'internal' ? wrapContentInFrame(slide.content || '') : undefined}
+              src={slide.type === 'external' ? slide.url : undefined}
+              title={slide.title}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              className={`transition-opacity duration-1000 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+              onLoad={() => setIsLoading(false)}
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            />
+          )}
         </div>
       </div>
 
