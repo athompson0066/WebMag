@@ -47,6 +47,13 @@ export async function fetchSlidesFromSupabase(): Promise<WebsiteSlide[]> {
   const client = getSupabase();
   if (!client) return [];
 
+  // Fetch the order from config table
+  const { data: orderData } = await client
+    .from('config')
+    .select('value')
+    .eq('key', 'slide_order')
+    .single();
+
   const { data, error } = await client
     .from('slides')
     .select('*')
@@ -57,7 +64,7 @@ export async function fetchSlidesFromSupabase(): Promise<WebsiteSlide[]> {
     return [];
   }
 
-  return (data as any[]).map(row => ({
+  const slides = (data as any[]).map(row => ({
     id: row.id,
     type: row.type,
     url: row.url,
@@ -71,6 +78,23 @@ export async function fetchSlidesFromSupabase(): Promise<WebsiteSlide[]> {
     googleSheetSubmissionUrl: row.googlesheetsubmissionurl,
     price: row.price
   }));
+
+  if (orderData && orderData.value && Array.isArray(orderData.value)) {
+    const order = orderData.value as string[];
+    slides.sort((a, b) => {
+      const indexA = order.indexOf(a.id);
+      const indexB = order.indexOf(b.id);
+      if (indexA === -1 && indexB === -1) return 0;
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+  } else {
+    // Fallback exactly as before if no order is saved: sort by created_at ascending (though we didn't fetch created_at, we can rely on data order or explicitly sort if needed, but array order usually defaults to created_at if we add .order('created_at')).
+    // Actually, let's keep the order by created_at on the fetch just in case.
+  }
+
+  return slides;
 }
 
 export async function saveSlideToSupabase(slide: WebsiteSlide) {
@@ -137,6 +161,11 @@ export async function saveMultipleSlidesToSupabase(slides: WebsiteSlide[]) {
   if (error) {
     console.error('Error saving multiple slides to Supabase:', error);
   } else {
+    // Save the order
+    await client.from('config').upsert({
+      key: 'slide_order',
+      value: slides.map(s => s.id)
+    });
     console.log(`${slides.length} slides saved to Supabase successfully.`);
   }
 }
