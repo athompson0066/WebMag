@@ -137,6 +137,16 @@ export async function removeSlideFromSupabase(id: string) {
   if (error) console.error('Error removing slide:', error);
 }
 
+export async function saveSlideOrderToSupabase(slideIds: string[]) {
+  const client = getSupabase();
+  if (!client) return;
+
+  await client.from('config').upsert({
+    key: 'slide_order',
+    value: slideIds
+  });
+}
+
 export async function saveMultipleSlidesToSupabase(slides: WebsiteSlide[]) {
   const client = getSupabase();
   if (!client) return;

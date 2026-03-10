@@ -8,7 +8,8 @@ import {
   removeSlideFromSupabase,
   saveMultipleSlidesToSupabase,
   fetchCoverConfigFromSupabase,
-  saveCoverConfigToSupabase
+  saveCoverConfigToSupabase,
+  saveSlideOrderToSupabase
 } from './services/supabaseService';
 import CoverPage from './components/CoverPage';
 import Slide from './components/Slide';
@@ -191,6 +192,7 @@ const App: React.FC = () => {
     const updated = [...slides, slide];
     setSlides(updated);
     await saveSlideToSupabase(slide);
+    await saveSlideOrderToSupabase(updated.map(s => s.id));
   };
 
   const updateManualSlide = async (updatedSlide: WebsiteSlide) => {
@@ -203,6 +205,7 @@ const App: React.FC = () => {
     const updated = slides.filter(s => s.id !== id);
     setSlides(updated);
     await removeSlideFromSupabase(id);
+    await saveSlideOrderToSupabase(updated.map(s => s.id));
   };
 
   const handleUpdateCover = async (config: CoverConfig) => {
@@ -332,7 +335,7 @@ const App: React.FC = () => {
               <button
                 onClick={goToPrev}
                 disabled={isAtStart}
-                className={`w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/70 hover:text-white hover:bg-black/60 transition-all duration-300 opacity-0 group-hover:opacity-100 ${isAtStart ? 'hidden' : ''}`}
+                className={`w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/70 hover:text-white hover:bg-black/60 transition-all duration-300 ${isAtStart ? 'hidden' : ''}`}
                 title="Previous Page"
               >
                 <span className="text-2xl font-light">‹</span>
@@ -342,7 +345,7 @@ const App: React.FC = () => {
               <button
                 onClick={goToNext}
                 disabled={isAtEnd}
-                className={`w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/70 hover:text-white hover:bg-black/60 transition-all duration-300 opacity-0 group-hover:opacity-100 ${isAtEnd ? 'hidden' : ''}`}
+                className={`w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/70 hover:text-white hover:bg-black/60 transition-all duration-300 ${isAtEnd ? 'hidden' : ''}`}
                 title="Next Page"
               >
                 <span className="text-2xl font-light">›</span>
